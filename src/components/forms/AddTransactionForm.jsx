@@ -1,16 +1,24 @@
-import { useState } from "react";
+import { useState, useEffect  } from "react";
 import Card from "../common/Card";
 import useFinance from "../../hooks/useFinance";
 import { categories } from "../../data/categories";
 
-function AddTransactionForm() {
+function AddTransactionForm({ defaultType = "expense" }) {
+
+useEffect(() => {
+  setForm((prev) => ({
+    ...prev,
+    type: defaultType,
+  }));
+}, [defaultType]);
+
   const { addTransaction } = useFinance();
 
   const [form, setForm] = useState({
     title: "",
     amount: "",
     category: "Food",
-    type: "expense",
+    type: defaultType,
     date: new Date().toISOString().split("T")[0],
   });
 
@@ -18,8 +26,8 @@ function AddTransactionForm() {
     setForm((prev) => ({
       ...prev,
       [e.target.name]: e.target.value,
-    }));
-  };
+      }));
+    };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -33,6 +41,14 @@ function AddTransactionForm() {
       alert("Please enter a valid amount.");
       return;
     }
+
+    useEffect(() => {
+      setForm((prev) => ({
+        ...prev,
+        type: defaultType,
+      }));
+    }, [defaultType]);
+
 
     addTransaction({
       title: form.title,
@@ -53,6 +69,7 @@ function AddTransactionForm() {
 
   return (
     <Card>
+      <div id="transaction-form">
       <h2 className="mb-6 text-2xl font-bold text-white">
         Add Transaction
       </h2>
@@ -153,9 +170,10 @@ function AddTransactionForm() {
           type="submit"
           className="w-full rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 py-3 text-lg font-semibold text-white transition hover:scale-[1.02]"
         >
-          Add Transaction
+          Add
         </button>
       </form>
+      </div>
     </Card>
   );
 }

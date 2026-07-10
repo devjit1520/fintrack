@@ -1,8 +1,13 @@
+import AnalyticsCards from "../../components/dashboard/AnalyticsCards";
+import AnalyticsOverview from "../../components/analytics/AnalyticsOverview";
+
 function Analytics() {
   return (
-    <h1 className="text-4xl font-bold">
-      Analytics
-    </h1>
+    <section className="space-y-8">
+      <AnalyticsCards />
+
+      <AnalyticsOverview />
+    </section>
   );
 }
 

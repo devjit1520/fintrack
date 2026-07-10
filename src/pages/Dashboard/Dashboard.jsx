@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef  } from "react";
 import DashboardHeader from "../../components/dashboard/DashboardHeader";
 import { dashboardStats } from "../../data/dashboardData";
 import StatsCard from "../../components/dashboard/StatsCard";
@@ -18,9 +18,18 @@ import WelcomeBanner from "../../components/dashboard/WelcomeBanner";
 import FinanceTips from "../../components/dashboard/FinanceTips";
 import Achievements from "../../components/dashboard/Achievements";
 import EditTransactionModal from "../../components/transactions/EditTransactionModal";
+import GoalModal from "../../components/goals/GoalModal";
+import useFinance from "../../hooks/useFinance";
+import GoalProgress from "../../components/goals/GoalProgress";
+import RecentTransactions from "../../components/dashboard/RecentTransactions";
 
 function Dashboard() {
   const [editing, setEditing] = useState(null);
+  const formRef = useRef(null);
+  const [defaultType, setDefaultType] = useState("expense");
+  const [goalOpen, setGoalOpen] = useState(false);
+
+const { exportCSV } = useFinance();
   
   return (
     <section className="space-y-8">
@@ -32,28 +41,36 @@ function Dashboard() {
 
       {/* Stats */}
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-  {dashboardStats.map((card) => (
-    <StatsCard
-      key={card.id}
-      {...card}
-    />
-  ))}
-  </div>
+        {dashboardStats.map((card) => (
+          <StatsCard
+            key={card.id}
+            {...card}
+          />
+        ))}
+      </div>
+
+      {/* <GoalProgress /> */}
+
+      <GoalProgress />
 
       {/* Analytics */}
       <AnalyticsCards />
 
 
       {/* Quick Actions */}
-      <QuickActions />
+     <QuickActions
+        setDefaultType={setDefaultType}
+        openGoal={() => setGoalOpen(true)}
+      />
 
       {/* Main Content */}
       <div className="grid gap-6 lg:grid-cols-3">
-        <div>
-          <AddTransactionForm />
+        <div ref={formRef}>
+          <AddTransactionForm defaultType={defaultType} />
         </div>
 
-        <div className="lg:col-span-2">
+        <div className="space-y-6 lg:col-span-2">
+           <RecentTransactions />
           <TransactionTable
             onEdit={setEditing}
           />
@@ -96,6 +113,11 @@ function Dashboard() {
           <FinanceTips />
           <Achievements />
       </div>
+
+      <GoalModal
+        open={goalOpen}
+        onClose={() => setGoalOpen(false)}
+      />
 
 
 
