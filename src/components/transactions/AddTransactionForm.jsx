@@ -55,27 +55,67 @@ export default function AddTransactionForm({ onAdd, onClose }) {
     }
   };
 
-  return (
-   <form
-  onSubmit={handleSubmit}
-  className="
-    w-full
-    max-w-2xl
-    mx-auto
-    rounded-3xl
-    border
-    border-slate-700/50
-    bg-gradient-to-br
-    from-slate-900/95
-    via-slate-900
-    to-slate-950
-    backdrop-blur-xl
-    p-8
-    shadow-[0_20px_60px_rgba(0,0,0,0.45)]
-    space-y-6
-  "
->
-  {/* Header */}
+ return (
+  <div
+    className="
+      fixed
+      inset-0
+      z-50
+      flex
+      items-center
+      justify-center
+      bg-black/60
+      backdrop-blur-sm
+      p-4
+    "
+  >
+    <div
+      className="
+        relative
+        w-full
+        max-w-2xl
+        max-h-[90vh]
+        overflow-y-auto
+        rounded-3xl
+        border
+        border-slate-700
+        bg-gradient-to-br
+        from-slate-950
+        via-slate-900
+        to-slate-800
+        shadow-[0_25px_80px_rgba(0,0,0,0.6)]
+      "
+    >
+      {/* Close Button */}
+      <button
+        type="button"
+        onClick={onClose}
+        className="
+          absolute
+          right-5
+          top-5
+          flex
+          h-10
+          w-10
+          items-center
+          justify-center
+          rounded-full
+          bg-slate-800
+          text-slate-300
+          transition
+          hover:bg-red-500
+          hover:text-white
+        "
+      >
+        ✕
+      </button>
+
+      {/* Your Existing Form */}
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-6 p-8"
+      >
+        {/* Header */}
   <div className="space-y-2">
     <h2 className="text-3xl font-bold text-white">
       Add Transaction
@@ -295,7 +335,7 @@ Category
   />
 
   {/* Note */}
-  <textarea
+  {/* <textarea
     rows={4}
     name="note"
     placeholder="Write a note..."
@@ -317,7 +357,7 @@ Category
       focus:ring-2
       focus:ring-blue-500/30
     "
-  />
+  /> */}
 
   {/* Buttons */}
   <div className="flex justify-end gap-4 pt-4">
@@ -366,6 +406,10 @@ Category
     </button>
 
   </div>
-</form>
-  );
+
+
+      </form>
+    </div>
+  </div>
+);
 }

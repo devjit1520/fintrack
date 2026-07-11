@@ -29,18 +29,7 @@ function QuickActions({ setDefaultType , openGoal, }) {
   };
 
   const actions = [
-    {
-      title: "Add Income",
-      icon: PlusCircle,
-      color: "bg-green-500/20 text-green-400",
-       onClick: () => setDefaultType("income"),
-    },
-    {
-      title: "Add Expense",
-      icon: MinusCircle,
-      color: "bg-red-500/20 text-red-400",
-      onClick: () => setDefaultType("expense"),
-    },
+    
    {
       title: "Set Goal",
       icon: Target,
@@ -57,7 +46,7 @@ function QuickActions({ setDefaultType , openGoal, }) {
   ];
 
   return (
-    <div className="grid gap-6 md:grid-cols-4">
+    <div className="grid gap-6 md:grid-cols-2">
       {actions.map((item) => {
         const Icon = item.icon;
 
