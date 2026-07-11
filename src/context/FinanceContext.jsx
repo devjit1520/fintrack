@@ -146,6 +146,7 @@ function FinanceProvider({ children }) {
     <FinanceContext.Provider
       value={{
         transactions,
+        setTransactions,
         summary,
 
         addTransaction,

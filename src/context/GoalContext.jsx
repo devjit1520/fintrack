@@ -68,6 +68,7 @@ function GoalProvider({ children }) {
     <GoalContext.Provider
       value={{
         goals,
+        setGoals,
         totalGoals,
         totalTarget,
         addGoal,

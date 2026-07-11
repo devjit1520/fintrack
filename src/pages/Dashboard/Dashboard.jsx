@@ -1,6 +1,6 @@
 import { useState, useRef  } from "react";
 import DashboardHeader from "../../components/dashboard/DashboardHeader";
-import { dashboardStats } from "../../data/dashboardData";
+// import { dashboardStats } from "../../data/dashboardData";
 import StatsCard from "../../components/dashboard/StatsCard";
 import QuickActions from "../../components/dashboard/QuickActions";
 import AddTransactionForm from "../../components/forms/AddTransactionForm";
@@ -22,6 +22,7 @@ import GoalModal from "../../components/goals/GoalModal";
 import useFinance from "../../hooks/useFinance";
 import GoalProgress from "../../components/goals/GoalProgress";
 import RecentTransactions from "../../components/dashboard/RecentTransactions";
+import PremiumStats from "../../components/dashboard/PremiumStats";
 
 function Dashboard() {
   const [editing, setEditing] = useState(null);
@@ -30,6 +31,11 @@ function Dashboard() {
   const [goalOpen, setGoalOpen] = useState(false);
 
 const { exportCSV } = useFinance();
+
+
+const [goals, setGoals] = useState(
+  JSON.parse(localStorage.getItem("goals")) || []
+);
   
   return (
     <section className="space-y-8">
@@ -40,14 +46,7 @@ const { exportCSV } = useFinance();
       {/* <DashboardHeader /> */}
 
       {/* Stats */}
-      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-        {dashboardStats.map((card) => (
-          <StatsCard
-            key={card.id}
-            {...card}
-          />
-        ))}
-      </div>
+      <PremiumStats />
 
       {/* <GoalProgress /> */}
 
@@ -114,10 +113,23 @@ const { exportCSV } = useFinance();
           <Achievements />
       </div>
 
-      <GoalModal
+      {/* <GoalModal
         open={goalOpen}
         onClose={() => setGoalOpen(false)}
-      />
+      /> */}
+
+      <GoalModal
+  open={goalOpen}
+  onClose={() => setGoalOpen(false)}
+  onGoalAdded={(newGoal)=>{
+
+    setGoals((prev)=>[
+      ...prev,
+      newGoal
+    ]);
+
+  }}
+/>
 
 
 
