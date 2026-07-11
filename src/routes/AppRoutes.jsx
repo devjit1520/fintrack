@@ -8,6 +8,7 @@ import Budget from "../pages/Budget/Budget";
 import Goals from "../pages/Goals/Goals";
 import Analytics from "../pages/Analytics/Analytics";
 import Settings from "../pages/Settings/Settings";
+// import Analytics from "./pages/Analytics";
 
 function AppRoutes() {
   return (
@@ -19,6 +20,8 @@ function AppRoutes() {
         <Route path="/goals" element={<Goals />} />
         <Route path="/analytics" element={<Analytics />} />
         <Route path="/settings" element={<Settings />} />
+         {/* Add this */}
+  {/* <Route path="/analytics" element={<Analytics />} /> */}
       </Route>
     </Routes>
   );

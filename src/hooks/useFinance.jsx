@@ -1,8 +1,6 @@
 import { useContext } from "react";
 import { FinanceContext } from "../context/FinanceContext";
 
-function useFinance() {
+export default function useFinance() {
   return useContext(FinanceContext);
-}
-
-export default useFinance;
+};
