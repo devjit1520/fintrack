@@ -16,11 +16,11 @@ function NotificationBell() {
   };
 
   return (
-    <div className="relative">
+    <div className="relative text-black/60 dark:text-white">
 
       <button
         onClick={() => setOpen(!open)}
-        className="relative rounded-xl p-2 transition hover:bg-slate-800"
+        className="relative rounded-xl p-2 transition  hover:bg-slate-800 hover:text-white"
       >
 
         <Bell size={22} />

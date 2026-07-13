@@ -1,17 +1,19 @@
 import { useState } from "react";
-import { X } from "lucide-react";
 import { motion } from "framer-motion";
+import { X, Target } from "lucide-react";
 
-function GoalModal({ open, onClose, onGoalAdded }) {
-
-  // const [goalName, setGoalName] = useState("");
-
+function GoalModal({
+  open,
+  onClose,
+  onGoalAdded,
+}) {
   const [goal, setGoal] = useState({
     title: "",
     amount: "",
     deadline: "",
   });
 
+  if (!open) return null;
 
   const handleChange = (e) => {
     setGoal({
@@ -20,370 +22,182 @@ function GoalModal({ open, onClose, onGoalAdded }) {
     });
   };
 
+  const handleSave = () => {
+    if (!goal.title || !goal.amount) {
+      alert("Please fill all required fields.");
+      return;
+    }
 
-//   const handleSave = () => {
+    const newGoal = {
+      id: Date.now(),
 
-//     if (!goal.title || !goal.amount) {
-//       alert("Please fill all required fields");
-//       return;
-//     }
+      title: goal.title,
 
+      target: Number(goal.amount),
 
-//    const newGoal = {
-//   id: Date.now(),
-//   title: goal.title,
-//   amount: Number(goal.amount),
-//   savedAmount: 0,
-//   deadline: goal.deadline,
+      saved: 0,
 
-//   status: "Active",   // add this
+      deadline: goal.deadline,
 
-//   createdAt: new Date().toISOString(),
-// };
+      status: "Active",
 
+      createdAt: new Date().toISOString(),
+    };
 
-//     // Get old goals
-//     const oldGoals =
-//       JSON.parse(localStorage.getItem("goals")) || [];
+    const oldGoals =
+      JSON.parse(localStorage.getItem("goals")) || [];
 
+    const updatedGoals = [
+      ...oldGoals,
+      newGoal,
+    ];
 
-//     // Add new goal
-//     const updatedGoals = [
-//       ...oldGoals,
-//       newGoal
-//     ];
+    localStorage.setItem(
+      "goals",
+      JSON.stringify(updatedGoals)
+    );
 
+    if (onGoalAdded) {
+      onGoalAdded(newGoal);
+    }
 
-//     // Save permanently
-//     localStorage.setItem(
-//       "goals",
-//       JSON.stringify(updatedGoals)
-//     );
+    setGoal({
+      title: "",
+      amount: "",
+      deadline: "",
+    });
 
-
-//     // Update dashboard instantly
-//     if(onGoalAdded){
-//       onGoalAdded(newGoal);
-//     }
-
-
-//     setGoal({
-//       title:"",
-//       amount:"",
-//       deadline:"",
-//     });
-
-
-//     alert("Goal Saved Successfully!");
-
-//     onClose();
-
-//   };
-
-const handleSave = () => {
-
-  if (!goal.title || !goal.amount) {
-    alert("Please fill all fields");
-    return;
-  }
-
-
-  // const newGoal = {
-  //   id: Date.now(),
-  //   title: goal.title,
-  //   amount: Number(goal.amount),
-  //   savedAmount: 0,
-  //   deadline: goal.deadline,
-  //   status: "Active",
-  //   createdAt: new Date().toISOString(),
-  // };
-
-
-//   const newGoal = {
-//   id: Date.now(),
-//   title: goal.title,
-//   targetAmount: Number(goal.amount),
-//   savedAmount: 0,
-//   deadline: goal.deadline,
-//   category: "Savings",
-//   status: "Active"
-// };
-
-const handleSave = () => {
-
-  if (!goal.title || !goal.amount) {
-    alert("Please fill all fields");
-    return;
-  }
-
-
-  const newGoal = {
-
-    id: Date.now(),
-
-    name: goal.title,
-
-    targetAmount: Number(goal.amount),
-
-    savedAmount: 0,
-
-    deadline: goal.deadline,
-
-    category: "Savings",
-
-    status: "Active",
-
-    createdAt: new Date().toISOString()
-
+    onClose();
   };
 
-
-  const existingGoals =
-    JSON.parse(localStorage.getItem("goals")) || [];
-
-
-  const updatedGoals = [
-    ...existingGoals,
-    newGoal
-  ];
-
-
-  localStorage.setItem(
-    "goals",
-    JSON.stringify(updatedGoals)
-  );
-
-
-  if(onGoalAdded){
-    onGoalAdded(newGoal);
-  }
-
-
-  setGoal({
-
-    title:"",
-    amount:"",
-    deadline:""
-
-  });
-
-
-  onClose();
-
-};
-
-
-  const existingGoals =
-    JSON.parse(localStorage.getItem("goals")) || [];
-
-
-  const updatedGoals = [
-    ...existingGoals,
-    newGoal
-  ];
-
-
-  localStorage.setItem(
-    "goals",
-    JSON.stringify(updatedGoals)
-  );
-
-
-  // IMPORTANT
-  onGoalAdded(newGoal);
-
-
-  setGoal({
-    title:"",
-    amount:"",
-    deadline:"",
-  });
-
-
-  onClose();
-
-};
-
-
-
-  if(!open) return null;
-
-
-
   return (
-
-    <div className="
-    fixed inset-0 z-50
-    flex items-center justify-center
-    bg-black/70 backdrop-blur-sm
-    ">
-
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md">
 
       <motion.div
-
-      initial={{scale:0.8,opacity:0}}
-      animate={{scale:1,opacity:1}}
-
-      className="
-      w-full max-w-md
-      rounded-3xl
-      bg-slate-900
-      p-8
-      shadow-2xl
-      "
-
+        initial={{
+          opacity: 0,
+          scale: 0.8,
+        }}
+        animate={{
+          opacity: 1,
+          scale: 1,
+        }}
+        className="w-full max-w-lg rounded-3xl border border-white/10 bg-slate-900 p-8 shadow-2xl"
       >
+        {/* Header */}
 
+        <div className="mb-8 flex items-center justify-between">
 
-        <div className="flex justify-between mb-6">
+          <div className="flex items-center gap-3">
 
+            <div className="rounded-2xl bg-cyan-500/20 p-3">
+              <Target
+                size={24}
+                className="text-cyan-400"
+              />
+            </div>
 
-          <h2 className="
-          text-2xl
-          font-bold
-          text-white
-          ">
-            Set Savings Goal
-          </h2>
+            <div>
+              <h2 className="text-2xl font-bold text-white">
+                Create Goal
+              </h2>
 
+              <p className="text-sm text-slate-400">
+                Start saving smarter
+              </p>
+            </div>
+
+          </div>
 
           <button
-          onClick={onClose}
-          className="text-gray-400 hover:text-white"
+            onClick={onClose}
+            className="rounded-xl p-2 text-slate-400 transition hover:bg-slate-800 hover:text-white"
           >
-            <X/>
+            <X />
           </button>
-
 
         </div>
 
+        {/* Goal Name */}
 
+        <div className="mb-5">
 
+          <label className="mb-2 block text-sm text-slate-300">
+            Goal Name
+          </label>
 
-        <input
+          <input
+            type="text"
+            name="title"
+            value={goal.title}
+            onChange={handleChange}
+            placeholder="Example: Buy Laptop"
+            className="w-full rounded-2xl border border-slate-700 bg-slate-800 p-4 text-white outline-none transition focus:border-cyan-500"
+          />
 
-        className="
-        mb-4 w-full
-        rounded-xl
-        bg-slate-800
-        p-3
-        text-white
-        "
+        </div>
 
-        placeholder="Goal Name"
+        {/* Target */}
 
-        name="title"
+        <div className="mb-5">
 
-        value={goal.title}
+          <label className="mb-2 block text-sm text-slate-300">
+            Target Amount
+          </label>
 
-        onChange={handleChange}
+          <input
+            type="number"
+            name="amount"
+            value={goal.amount}
+            onChange={handleChange}
+            placeholder="₹50,000"
+            className="w-full rounded-2xl border border-slate-700 bg-slate-800 p-4 text-white outline-none transition focus:border-cyan-500"
+          />
 
-        />
+        </div>
 
+        {/* Deadline */}
 
+        <div className="mb-8">
 
+          <label className="mb-2 block text-sm text-slate-300">
+            Deadline
+          </label>
 
+          <input
+            type="date"
+            name="deadline"
+            value={goal.deadline}
+            onChange={handleChange}
+            className="w-full rounded-2xl border border-slate-700 bg-slate-800 p-4 text-white outline-none transition focus:border-cyan-500"
+          />
 
-        <input
+        </div>
 
-        className="
-        mb-4 w-full
-        rounded-xl
-        bg-slate-800
-        p-3
-        text-white
-        "
+        {/* Buttons */}
 
-        type="number"
-
-        placeholder="Target Amount"
-
-        name="amount"
-
-        value={goal.amount}
-
-        onChange={handleChange}
-
-        />
-
-
-
-
-
-
-        <input
-
-        className="
-        mb-6 w-full
-        rounded-xl
-        bg-slate-800
-        p-3
-        text-white
-        "
-
-        type="date"
-
-        name="deadline"
-
-        value={goal.deadline}
-
-        onChange={handleChange}
-
-        />
-
-
-
-
-
-        <div className="flex justify-end gap-3">
-
+        <div className="flex justify-end gap-4">
 
           <button
-
-          onClick={onClose}
-
-          className="
-          rounded-xl
-          bg-slate-700
-          px-5 py-3
-          text-white
-          "
-
+            onClick={onClose}
+            className="rounded-xl border border-slate-700 px-6 py-3 text-slate-300 transition hover:bg-slate-800"
           >
             Cancel
           </button>
 
-
-
-
           <button
-
-          onClick={handleSave}
-
-          className="
-          rounded-xl
-          bg-blue-600
-          px-5 py-3
-          text-white
-          hover:bg-blue-700
-          "
-
+            onClick={handleSave}
+            className="rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-6 py-3 font-semibold text-white transition hover:scale-105"
           >
             Save Goal
           </button>
 
-
-
         </div>
-
 
       </motion.div>
 
-
     </div>
-
   );
 }
-
 
 export default GoalModal;

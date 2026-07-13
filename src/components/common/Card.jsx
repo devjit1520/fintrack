@@ -1,28 +1,39 @@
 import { motion } from "framer-motion";
+
 function Card({ children, className = "" }) {
   return (
-     <motion.div
-    whileHover={{
+    <motion.div
+      whileHover={{
         y: -6,
         scale: 1.01,
-    }}
-    transition={{
+      }}
+      transition={{
         duration: 0.25,
-    }}
-    className={`
+      }}
+      className={`
         rounded-3xl
         p-6
         border
-        border-white/10
-        bg-white/5
+
+        bg-white
+        dark:bg-slate-900
+
+        border-slate-200
+        dark:border-slate-800
+
+        shadow-lg
+        dark:shadow-xl
+
+        dark:shadow-cyan-500/5
+
         backdrop-blur-xl
-        shadow-xl
-        shadow-cyan-500/5
+
         transition-all
         duration-300
+
         ${className}
-    `}
->
+      `}
+    >
       {children}
     </motion.div>
   );

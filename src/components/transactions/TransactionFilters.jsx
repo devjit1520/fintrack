@@ -7,18 +7,52 @@ function TransactionFilters({
   setSort,
 }) {
   return (
-    <div className="space-y-4 rounded-2xl border border-slate-800 bg-slate-900 p-4">
+    <div
+      className="
+        space-y-4
+        rounded-2xl
+        border
+        border-slate-200
+        bg-white
+        p-4
+        dark:border-slate-800
+        dark:bg-slate-900
+      "
+    >
 
       {/* Type */}
       <div>
-        <label className="mb-2 block text-sm text-slate-400">
+        <label
+          className="
+            mb-2
+            block
+            text-sm
+            text-slate-600
+            dark:text-slate-400
+          "
+        >
           Type
         </label>
 
         <select
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          className="w-full rounded-xl border border-slate-700 bg-slate-800 p-3 text-white"
+          className="
+            w-full
+            rounded-xl
+            border
+            border-slate-200
+            bg-slate-100
+            p-3
+            text-slate-900
+
+            dark:border-slate-700
+            dark:bg-slate-800
+            dark:text-white
+
+            outline-none
+            focus:border-blue-500
+          "
         >
           <option value="all">All</option>
           <option value="income">Income</option>
@@ -26,16 +60,40 @@ function TransactionFilters({
         </select>
       </div>
 
+
       {/* Category */}
       <div>
-        <label className="mb-2 block text-sm text-slate-400">
+        <label
+          className="
+            mb-2
+            block
+            text-sm
+            text-slate-600
+            dark:text-slate-400
+          "
+        >
           Category
         </label>
 
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          className="w-full rounded-xl border border-slate-700 bg-slate-800 p-3 text-white"
+          className="
+            w-full
+            rounded-xl
+            border
+            border-slate-200
+            bg-slate-100
+            p-3
+            text-slate-900
+
+            dark:border-slate-700
+            dark:bg-slate-800
+            dark:text-white
+
+            outline-none
+            focus:border-blue-500
+          "
         >
           <option value="all">All Categories</option>
           <option value="Salary">Salary</option>
@@ -49,16 +107,40 @@ function TransactionFilters({
         </select>
       </div>
 
+
       {/* Sort */}
       <div>
-        <label className="mb-2 block text-sm text-slate-400">
+        <label
+          className="
+            mb-2
+            block
+            text-sm
+            text-slate-600
+            dark:text-slate-400
+          "
+        >
           Sort By
         </label>
 
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value)}
-          className="w-full rounded-xl border border-slate-700 bg-slate-800 p-3 text-white"
+          className="
+            w-full
+            rounded-xl
+            border
+            border-slate-200
+            bg-slate-100
+            p-3
+            text-slate-900
+
+            dark:border-slate-700
+            dark:bg-slate-800
+            dark:text-white
+
+            outline-none
+            focus:border-blue-500
+          "
         >
           <option value="newest">Newest First</option>
           <option value="oldest">Oldest First</option>
@@ -67,13 +149,25 @@ function TransactionFilters({
         </select>
       </div>
 
+
+      {/* Clear Button */}
       <button
         onClick={() => {
           setFilter("all");
           setCategory("all");
           setSort("newest");
         }}
-        className="w-full rounded-xl bg-red-500 py-3 font-semibold text-white transition hover:bg-red-600"
+        className="
+          w-full
+          rounded-xl
+          bg-red-500
+          py-3
+          font-semibold
+          text-white
+          transition
+          hover:bg-red-600
+          active:scale-95
+        "
       >
         Clear Filters
       </button>

@@ -8,11 +8,31 @@ html {
 
 body {
   margin: 0;
-  background: #020617;
-  color: white;
   font-family: Inter, sans-serif;
+  background-color: white;
+  color: #0f172a;
+  transition: background-color .3s, color .3s;
+}
+
+html.dark body {
+  background-color: #020617;
+  color: white;
 }
 
 * {
   box-sizing: border-box;
 }
+
+/* Light Theme */
+
+/* .light {
+  background: #f8fafc;
+  color: #0f172a;
+} */
+
+/* Dark Theme */
+
+/* .dark {
+  background: #020617;
+  color: white;
+} */

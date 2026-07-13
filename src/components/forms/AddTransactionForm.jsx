@@ -19,7 +19,6 @@ function AddTransactionForm({ defaultType = "expense" }) {
 
 
 
-  // Update transaction type when defaultType changes
   useEffect(() => {
 
     setForm((prev) => ({
@@ -50,8 +49,8 @@ function AddTransactionForm({ defaultType = "expense" }) {
     if (!form.title.trim()) {
 
       alert("Please enter a title.");
-
       return;
+
     }
 
 
@@ -59,8 +58,8 @@ function AddTransactionForm({ defaultType = "expense" }) {
     if (!form.amount || Number(form.amount) <= 0) {
 
       alert("Please enter a valid amount.");
-
       return;
+
     }
 
 
@@ -81,8 +80,6 @@ function AddTransactionForm({ defaultType = "expense" }) {
 
 
 
-    // Reset form after adding
-
     setForm({
 
       title: "",
@@ -101,6 +98,32 @@ function AddTransactionForm({ defaultType = "expense" }) {
 
 
 
+
+  const inputStyle = `
+  w-full rounded-xl
+  border border-slate-300
+  bg-white
+  px-4 py-3
+  text-black
+  outline-none
+
+  dark:border-slate-700
+  dark:bg-slate-800
+  dark:text-white
+
+  focus:border-blue-500
+  `;
+
+
+
+  const labelStyle = `
+  mb-2 block text-sm
+  text-slate-600
+  dark:text-slate-400
+  `;
+
+
+
   return (
 
     <Card>
@@ -108,11 +131,20 @@ function AddTransactionForm({ defaultType = "expense" }) {
       <div id="transaction-form">
 
 
-        <h2 className="mb-6 text-2xl font-bold text-white">
+        <h2
+          className="
+          mb-6
+          text-2xl
+          font-bold
+          text-black
+          dark:text-white
+          "
+        >
 
           Add Transaction
 
         </h2>
+
 
 
 
@@ -122,14 +154,14 @@ function AddTransactionForm({ defaultType = "expense" }) {
         >
 
 
+
+
           {/* Title */}
 
           <div>
 
-            <label className="mb-2 block text-sm text-slate-400">
-
+            <label className={labelStyle}>
               Title
-
             </label>
 
 
@@ -145,15 +177,7 @@ function AddTransactionForm({ defaultType = "expense" }) {
 
               onChange={handleChange}
 
-              className="
-              w-full rounded-xl 
-              border border-slate-700
-              bg-slate-800 
-              px-4 py-3 
-              text-white
-              outline-none
-              focus:border-blue-500
-              "
+              className={inputStyle}
 
             />
 
@@ -167,10 +191,8 @@ function AddTransactionForm({ defaultType = "expense" }) {
 
           <div>
 
-            <label className="mb-2 block text-sm text-slate-400">
-
+            <label className={labelStyle}>
               Amount
-
             </label>
 
 
@@ -186,15 +208,7 @@ function AddTransactionForm({ defaultType = "expense" }) {
 
               onChange={handleChange}
 
-              className="
-              w-full rounded-xl 
-              border border-slate-700
-              bg-slate-800 
-              px-4 py-3 
-              text-white
-              outline-none
-              focus:border-blue-500
-              "
+              className={inputStyle}
 
             />
 
@@ -204,14 +218,15 @@ function AddTransactionForm({ defaultType = "expense" }) {
 
 
 
+
           {/* Category */}
+
 
           <div>
 
-            <label className="mb-2 block text-sm text-slate-400">
 
+            <label className={labelStyle}>
               Category
-
             </label>
 
 
@@ -224,15 +239,10 @@ function AddTransactionForm({ defaultType = "expense" }) {
 
               onChange={handleChange}
 
-              className="
-              w-full rounded-xl 
-              border border-slate-700
-              bg-slate-800 
-              px-4 py-3 
-              text-white
-              "
+              className={inputStyle}
 
             >
+
 
               {
                 categories.map((category)=>(
@@ -245,6 +255,7 @@ function AddTransactionForm({ defaultType = "expense" }) {
                     {category}
 
                   </option>
+
 
                 ))
               }
@@ -259,15 +270,17 @@ function AddTransactionForm({ defaultType = "expense" }) {
 
 
 
+
           {/* Type */}
+
 
           <div>
 
-            <label className="mb-2 block text-sm text-slate-400">
 
+            <label className={labelStyle}>
               Transaction Type
-
             </label>
+
 
 
             <select
@@ -278,27 +291,17 @@ function AddTransactionForm({ defaultType = "expense" }) {
 
               onChange={handleChange}
 
-              className="
-              w-full rounded-xl 
-              border border-slate-700
-              bg-slate-800 
-              px-4 py-3 
-              text-white
-              "
+              className={inputStyle}
 
             >
 
               <option value="expense">
-
                 Expense
-
               </option>
 
 
               <option value="income">
-
                 Income
-
               </option>
 
 
@@ -311,15 +314,17 @@ function AddTransactionForm({ defaultType = "expense" }) {
 
 
 
+
           {/* Date */}
+
 
           <div>
 
-            <label className="mb-2 block text-sm text-slate-400">
 
+            <label className={labelStyle}>
               Date
-
             </label>
+
 
 
             <input
@@ -332,13 +337,7 @@ function AddTransactionForm({ defaultType = "expense" }) {
 
               onChange={handleChange}
 
-              className="
-              w-full rounded-xl 
-              border border-slate-700
-              bg-slate-800 
-              px-4 py-3 
-              text-white
-              "
+              className={inputStyle}
 
             />
 
@@ -349,14 +348,18 @@ function AddTransactionForm({ defaultType = "expense" }) {
 
 
 
+
+
           {/* Button */}
+
 
           <button
 
             type="submit"
 
             className="
-            w-full rounded-xl
+            w-full
+            rounded-xl
             bg-gradient-to-r
             from-blue-600
             to-cyan-500
@@ -364,8 +367,8 @@ function AddTransactionForm({ defaultType = "expense" }) {
             text-lg
             font-semibold
             text-white
-            hover:scale-[1.02]
             transition
+            hover:scale-[1.02]
             "
 
           >
@@ -373,6 +376,7 @@ function AddTransactionForm({ defaultType = "expense" }) {
             Add Transaction
 
           </button>
+
 
 
 
@@ -384,9 +388,11 @@ function AddTransactionForm({ defaultType = "expense" }) {
 
     </Card>
 
+
   );
 
 }
+
 
 
 export default AddTransactionForm;

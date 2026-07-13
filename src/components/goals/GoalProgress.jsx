@@ -1,11 +1,14 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import {
+  Target,
   Pencil,
   Trash2,
   Plus,
-  Target,
+  Calendar,
+  CheckCircle2,
 } from "lucide-react";
+
 import {
   CircularProgressbar,
   buildStyles,
@@ -28,184 +31,269 @@ function GoalProgress() {
 
   if (!goal) return null;
 
-  const current = Number(goal.saved || 0);
+  const saved = Number(goal.saved || 0);
   const target = Number(goal.target || 0);
 
-  const percentage =
+  const progress =
     target > 0
-      ? Math.min((current / target) * 100, 100)
+      ? Math.min((saved / target) * 100, 100)
       : 0;
 
-  const remaining = Math.max(target - current, 0);
+  const remaining = Math.max(target - saved, 0);
+
+  const deadline = goal.deadline
+    ? new Date(goal.deadline)
+    : null;
+
+  const today = new Date();
+
+  const daysLeft = deadline
+    ? Math.ceil(
+        (deadline - today) /
+          (1000 * 60 * 60 * 24)
+      )
+    : null;
 
   return (
     <>
       <motion.div
-        initial={{ opacity: 0, y: 25 }}
-        animate={{ opacity: 1, y: 0 }}
+        initial={{
+          opacity: 0,
+          y: 25,
+        }}
+        animate={{
+          opacity: 1,
+          y: 0,
+        }}
       >
-        <Card className="relative overflow-hidden border border-white/10 bg-white/5 backdrop-blur-xl">
+        <Card
+          className="
+          relative
+          overflow-hidden
 
+          bg-white
+          dark:bg-slate-900
+
+          border-slate-200
+          dark:border-slate-800
+        "
+        >
           {/* Background Glow */}
-          <div className="absolute -top-24 -right-24 h-56 w-56 rounded-full bg-cyan-500/10 blur-3xl" />
-          <div className="absolute -bottom-24 -left-24 h-56 w-56 rounded-full bg-blue-500/10 blur-3xl" />
+
+          <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-cyan-500/10 blur-3xl" />
+
+          <div className="absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-blue-500/10 blur-3xl" />
 
           {/* Header */}
-          <div className="relative flex items-center justify-between">
 
-            <div className="flex items-center gap-3">
+          <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
 
-              <div className="rounded-2xl bg-cyan-500/20 p-3">
+            <div className="flex items-center gap-4">
+
+              <div className="rounded-3xl bg-cyan-500/10 p-4">
+
                 <Target
-                  size={28}
-                  className="text-cyan-400"
+                  size={34}
+                  className="text-cyan-500"
                 />
+
               </div>
 
               <div>
-                <h2 className="text-2xl font-bold text-white">
+
+                <h2 className="text-3xl font-bold text-slate-900 dark:text-white">
                   {goal.title}
                 </h2>
 
-                <p className="text-slate-500">
-                 Recent New Goal Progress
+                <p className="text-slate-500 dark:text-slate-400">
+                  Keep saving every month 🚀
                 </p>
+
               </div>
 
             </div>
 
-            <div className="flex gap-2">
+            {/* Buttons */}
 
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                onClick={() => setAddingMoney(true)}
-                className="rounded-xl bg-green-500/20 p-3 text-green-400"
+            <div className="flex gap-3">
+
+              <button
+                onClick={() =>
+                  setAddingMoney(true)
+                }
+                className="rounded-xl bg-green-500 p-3 text-white transition hover:scale-105"
               >
                 <Plus size={18} />
-              </motion.button>
+              </button>
 
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                onClick={() => setEditing(true)}
-                className="rounded-xl bg-blue-500/20 p-3 text-blue-400"
+              <button
+                onClick={() =>
+                  setEditing(true)
+                }
+                className="rounded-xl bg-blue-500 p-3 text-white transition hover:scale-105"
               >
                 <Pencil size={18} />
-              </motion.button>
+              </button>
 
-              <motion.button
-                whileHover={{ scale: 1.1 }}
+              <button
                 onClick={() => {
                   if (
                     window.confirm(
-                      "Delete this goal?"
+                      "Delete Goal?"
                     )
                   ) {
                     deleteGoal(goal.id);
                   }
                 }}
-                className="rounded-xl bg-red-500/20 p-3 text-red-400"
+                className="rounded-xl bg-red-500 p-3 text-white transition hover:scale-105"
               >
                 <Trash2 size={18} />
-              </motion.button>
+              </button>
 
             </div>
 
           </div>
 
-          {/* Content */}
-          <div className="mt-10 grid gap-10 lg:grid-cols-2">
+          {/* Body */}
+
+          <div className="mt-12 grid gap-12 lg:grid-cols-[260px,1fr]">
 
             {/* Circle */}
-            <div className="mx-auto w-48">
+
+            <div className="mx-auto w-56">
 
               <CircularProgressbar
-                value={percentage}
-                text={`${percentage.toFixed(0)}%`}
+                value={progress}
+                text={`${progress.toFixed(0)}%`}
                 styles={buildStyles({
-                  pathColor: "#06b6d4",
+                  pathColor:
+                    progress >= 100
+                      ? "#22c55e"
+                      : "#06b6d4",
+
                   trailColor: "#1e293b",
-                  textColor: "#ffffff",
+
+                  textColor:
+                    document.documentElement.classList.contains(
+                      "dark"
+                    )
+                      ? "#fff"
+                      : "#0f172a",
+
+                  pathTransitionDuration: 1,
                 })}
               />
 
             </div>
 
             {/* Details */}
-            <div className="space-y-6">
 
-              <div className="grid grid-cols-2 gap-6">
+            <div>
 
-                <div>
+              <div className="grid gap-6 sm:grid-cols-2">
 
-                  <p className="text-slate-400">
+                <div className="rounded-2xl bg-green-500/10 p-5">
+
+                  <p className="text-slate-500">
                     Saved
                   </p>
 
-                  <h3 className="mt-2 text-2xl font-bold text-green-400">
-                    ₹{current.toLocaleString()}
+                  <h3 className="mt-2 text-3xl font-bold text-green-500">
+                    ₹{saved.toLocaleString()}
                   </h3>
 
                 </div>
 
-                <div>
+                <div className="rounded-2xl bg-cyan-500/10 p-5">
 
-                  <p className="text-slate-400">
+                  <p className="text-slate-500">
                     Target
                   </p>
 
-                  <h3 className="mt-2 text-2xl font-bold text-cyan-400">
+                  <h3 className="mt-2 text-3xl font-bold text-cyan-500">
                     ₹{target.toLocaleString()}
                   </h3>
 
                 </div>
 
-                <div>
+                <div className="rounded-2xl bg-red-500/10 p-5">
 
-                  <p className="text-slate-400">
+                  <p className="text-slate-500">
                     Remaining
                   </p>
 
-                  <h3 className="mt-2 text-2xl font-bold text-red-400">
+                  <h3 className="mt-2 text-3xl font-bold text-red-500">
                     ₹{remaining.toLocaleString()}
                   </h3>
 
                 </div>
 
-                <div>
+                <div className="rounded-2xl bg-yellow-500/10 p-5">
 
-                  <p className="text-slate-400">
+                  <p className="text-slate-500">
                     Completion
                   </p>
 
-                  <h3 className="mt-2 text-2xl font-bold text-yellow-400">
-                    {percentage.toFixed(1)}%
+                  <h3 className="mt-2 text-3xl font-bold text-yellow-500">
+                    {progress.toFixed(1)}%
                   </h3>
 
                 </div>
 
               </div>
 
+              {/* Deadline */}
+
+              {deadline && (
+
+                <div className="mt-8 flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-100 p-4 dark:border-slate-700 dark:bg-slate-800">
+
+                  <Calendar className="text-cyan-500" />
+
+                  <div>
+
+                    <p className="text-sm text-slate-500">
+                      Deadline
+                    </p>
+
+                    <p className="font-semibold text-slate-900 dark:text-white">
+                      {deadline.toLocaleDateString()}
+                    </p>
+
+                  </div>
+
+                  <div className="ml-auto rounded-xl bg-cyan-500/10 px-4 py-2 font-semibold text-cyan-500">
+                    {daysLeft} Days Left
+                  </div>
+
+                </div>
+
+              )}
+
               {/* Progress */}
-              <div>
+
+              <div className="mt-8">
 
                 <div className="mb-2 flex justify-between">
 
-                  <span className="text-slate-400">
-                    Progress
+                  <span className="font-medium text-slate-600 dark:text-slate-400">
+                    Goal Progress
                   </span>
 
-                  <span className="text-white">
-                    {percentage.toFixed(0)}%
+                  <span className="font-bold text-slate-900 dark:text-white">
+                    {progress.toFixed(0)}%
                   </span>
 
                 </div>
 
-                <div className="h-3 overflow-hidden rounded-full bg-slate-800">
+                <div className="h-4 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
 
                   <motion.div
-                    initial={{ width: 0 }}
+                    initial={{
+                      width: 0,
+                    }}
                     animate={{
-                      width: `${percentage}%`,
+                      width: `${progress}%`,
                     }}
                     transition={{
                       duration: 1,
@@ -217,14 +305,36 @@ function GoalProgress() {
 
               </div>
 
-              {percentage >= 100 && (
+              {/* Success */}
+
+              {progress >= 100 && (
 
                 <motion.div
-                  initial={{ scale: 0.8 }}
-                  animate={{ scale: 1 }}
-                  className="rounded-2xl bg-green-500/20 p-4 text-center font-bold text-green-400"
+                  initial={{
+                    opacity: 0,
+                    scale: 0.9,
+                  }}
+                  animate={{
+                    opacity: 1,
+                    scale: 1,
+                  }}
+                  className="mt-8 flex items-center gap-3 rounded-2xl bg-green-500/10 p-5 text-green-500"
                 >
-                  🎉 Congratulations! Goal Achieved
+
+                  <CheckCircle2 size={30} />
+
+                  <div>
+
+                    <h3 className="font-bold">
+                      Goal Achieved!
+                    </h3>
+
+                    <p>
+                      Congratulations on reaching your financial goal.
+                    </p>
+
+                  </div>
+
                 </motion.div>
 
               )}

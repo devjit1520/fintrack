@@ -1,15 +1,26 @@
 import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  X,
+  Target,
+  IndianRupee,
+  PiggyBank,
+  CalendarDays,
+  FolderOpen,
+} from "lucide-react";
+
 import useGoal from "../../hooks/useGoal";
 import { goalCategories } from "../../data/goalCategories";
+
 
 function AddGoalModal({ open, onClose }) {
   const { addGoal } = useGoal();
 
   const [form, setForm] = useState({
-    title: "",
+    name: "",
     category: "Emergency Fund",
-    target: "",
-    saved: "",
+    targetAmount: "",
+    savedAmount: "",
     deadline: "",
   });
 
@@ -23,29 +34,39 @@ function AddGoalModal({ open, onClose }) {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (!form.title.trim()) {
-      alert("Please enter a goal title.");
+    if (!form.name.trim()) {
+      alert("Please enter goal name.");
       return;
     }
 
-    if (!form.target || Number(form.target) <= 0) {
-      alert("Please enter a valid target amount.");
+    if (Number(form.targetAmount) <= 0) {
+      alert("Enter a valid target amount.");
       return;
     }
 
     addGoal({
-      title: form.title,
+      id: Date.now(),
+
+      name: form.name,
+
       category: form.category,
-      target: Number(form.target),
-      saved: Number(form.saved || 0),
+
+      targetAmount: Number(form.targetAmount),
+
+      savedAmount: Number(form.savedAmount || 0),
+
       deadline: form.deadline,
+
+      status: "Active",
+
+      createdAt: new Date().toISOString(),
     });
 
     setForm({
-      title: "",
+      name: "",
       category: "Emergency Fund",
-      target: "",
-      saved: "",
+      targetAmount: "",
+      savedAmount: "",
       deadline: "",
     });
 
@@ -55,128 +76,223 @@ function AddGoalModal({ open, onClose }) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+    <AnimatePresence>
 
-      <div className="w-full max-w-xl rounded-3xl border border-slate-700 bg-slate-900 p-8">
+      <motion.div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+      >
 
-        <h2 className="mb-6 text-3xl font-bold text-white">
-          Add New Goal
-        </h2>
-
-        <form
+        <motion.form
           onSubmit={handleSubmit}
-          className="space-y-5"
+          initial={{
+            scale: 0.9,
+            y: 30,
+          }}
+          animate={{
+            scale: 1,
+            y: 0,
+          }}
+          exit={{
+            scale: 0.9,
+            opacity: 0,
+          }}
+          className="
+          relative
+          w-full
+          max-w-2xl
+          overflow-hidden
+          rounded-3xl
+          border
+          border-slate-200
+          bg-white
+          shadow-2xl
+
+          dark:border-slate-700
+          dark:bg-slate-900
+          "
         >
 
-          <div>
-            <label className="mb-2 block text-slate-300">
-              Goal Title
-            </label>
+          {/* Glow */}
 
-            <input
-              type="text"
-              name="title"
-              value={form.title}
-              onChange={handleChange}
-              placeholder="Emergency Fund"
-              className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none focus:border-blue-500"
-            />
-          </div>
+          <div className="absolute -right-24 -top-24 h-60 w-60 rounded-full bg-cyan-500/10 blur-3xl" />
 
-          <div>
-            <label className="mb-2 block text-slate-300">
-              Category
-            </label>
+          {/* Header */}
 
-            <select
-              name="category"
-              value={form.category}
-              onChange={handleChange}
-              className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-white"
+          <div className="flex items-center justify-between border-b border-slate-200 p-7 dark:border-slate-800">
+
+            <div>
+
+              <h2 className="text-3xl font-bold text-slate-900 dark:text-white">
+                Create New Goal
+              </h2>
+
+              <p className="mt-1 text-slate-500 dark:text-slate-400">
+                Start tracking your financial dream.
+              </p>
+
+            </div>
+
+<button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl bg-slate-200 p-2 transition hover:rotate-90 dark:bg-slate-800"
             >
-              {goalCategories.map((category) => (
-                <option
-                  key={category}
-                  value={category}
-                >
-                  {category}
-                </option>
-              ))}
-            </select>
+              <X />
+            </button>
+
           </div>
 
-          <div className="grid gap-5 md:grid-cols-2">
+          {/* Body */}
+
+          <div className="space-y-6 p-7">
+
+            {/* Goal */}
 
             <div>
-              <label className="mb-2 block text-slate-300">
-                Target Amount
+
+              <label className="mb-2 flex items-center gap-2 font-medium text-slate-700 dark:text-slate-300">
+
+                <Target size={18} />
+
+                Goal Name
+
               </label>
 
               <input
-                type="number"
-                name="target"
-                value={form.target}
+                name="name"
+                value={form.name}
                 onChange={handleChange}
-                placeholder="50000"
-                className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-white"
+                placeholder="Buy New Car"
+                className="w-full text-black rounded-xl border border-slate-300 bg-slate-50 p-4 outline-none focus:border-cyan-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
               />
+
+            </div>
+
+            {/* Category */}
+
+            <div>
+
+              <label className="mb-2 flex items-center gap-2 font-medium text-slate-700 dark:text-slate-300">
+
+                <FolderOpen size={18} />
+
+                Category
+
+              </label>
+
+              <select
+                name="category"
+                value={form.category}
+                onChange={handleChange}
+                className="w-full rounded-xl text-black border border-slate-300 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+              >
+                {goalCategories.map((category) => (
+                  <option
+                    key={category}
+                    value={category}
+                  >
+                    {category}
+                  </option>
+                ))}
+              </select>
+
+            </div>
+
+            <div className="grid gap-5 md:grid-cols-2">
+
+              <div>
+
+                <label className="mb-2 flex items-center gap-2 font-medium text-slate-700 dark:text-slate-300">
+
+                  <IndianRupee size={18} />
+
+                  Target Amount
+
+                </label>
+
+                <input
+                  type="number"
+                  name="targetAmount"
+                  value={form.targetAmount}
+                  onChange={handleChange}
+                  className="w-full text-black rounded-xl border border-slate-300 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                />
+
+              </div>
+
+              <div>
+
+                <label className="mb-2 flex items-center gap-2 font-medium text-slate-700 dark:text-slate-300">
+
+                  <PiggyBank size={18} />
+
+                  Saved Amount
+
+                </label>
+
+                <input
+                  type="number"
+                  name="savedAmount"
+                  value={form.savedAmount}
+                  onChange={handleChange}
+                  className="w-full text-black rounded-xl border border-slate-300 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                />
+
+              </div>
+
             </div>
 
             <div>
-              <label className="mb-2 block text-slate-300">
-                Current Saved
+
+              <label className="mb-2 flex items-center gap-2 font-medium text-slate-700 dark:text-slate-300">
+
+                <CalendarDays size={18} />
+
+                Deadline
+
               </label>
 
               <input
-                type="number"
-                name="saved"
-                value={form.saved}
+                type="date"
+                name="deadline"
+                value={form.deadline}
                 onChange={handleChange}
-                placeholder="10000"
-                className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-white"
+                className="w-full text-black rounded-xl border border-slate-300 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
               />
+
             </div>
 
           </div>
 
-          <div>
-            <label className="mb-2 block text-slate-300">
-              Deadline
-            </label>
+          {/* Footer */}
 
-            <input
-              type="date"
-              name="deadline"
-              value={form.deadline}
-              onChange={handleChange}
-              className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-white"
-            />
-          </div>
-
-          <div className="flex justify-end gap-4 pt-4">
+          <div className="flex justify-end gap-4 border-t border-slate-200 p-7 dark:border-slate-800">
 
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl bg-slate-700 px-6 py-3 text-white hover:bg-slate-600"
+              className="rounded-xl bg-slate-200 px-6 py-3 font-semibold text-slate-800 transition hover:bg-slate-300 dark:bg-slate-700 dark:text-white"
             >
               Cancel
             </button>
 
             <button
               type="submit"
-              className="rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 px-6 py-3 font-semibold text-white hover:scale-105 transition"
+              className="rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-6 py-3 font-semibold text-white shadow-lg transition hover:scale-105"
             >
-              Save Goal
+              Create Goal
             </button>
 
           </div>
 
-        </form>
+        </motion.form>
 
-      </div>
+      </motion.div>
 
-    </div>
+    </AnimatePresence>
   );
 }
 

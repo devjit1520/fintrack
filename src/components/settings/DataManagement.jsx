@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import { motion } from "framer-motion";
+
 import {
   Database,
   Download,
@@ -7,235 +8,613 @@ import {
   Trash2,
   RotateCcw,
   FileSpreadsheet,
+  ShieldCheck,
 } from "lucide-react";
 
 import useFinance from "../../hooks/useFinance";
 import useBudget from "../../hooks/useBudget";
 import useGoal from "../../hooks/useGoal";
 
+
 function DataManagement() {
+
   const fileInput = useRef(null);
 
-  const { transactions, setTransactions } = useFinance();
-  const { budgets, setBudgets } = useBudget();
-  const { goals, setGoals } = useGoal();
 
+  const {
+    transactions,
+    setTransactions,
+  } = useFinance();
+
+
+  const {
+    budgets,
+    setBudgets,
+  } = useBudget();
+
+
+  const {
+    goals,
+    setGoals,
+  } = useGoal();
+
+
+
+  // Backup JSON
   const backupJSON = () => {
+
+
     const data = {
+
       transactions,
       budgets,
       goals,
-      exportedAt: new Date().toISOString(),
+
+      exportedAt:
+        new Date().toISOString(),
+
     };
 
+
     const blob = new Blob(
-      [JSON.stringify(data, null, 2)],
+      [
+        JSON.stringify(
+          data,
+          null,
+          2
+        )
+      ],
       {
-        type: "application/json",
+        type:"application/json"
       }
     );
 
-    const url = URL.createObjectURL(blob);
 
-    const a = document.createElement("a");
+    const url =
+      URL.createObjectURL(blob);
 
-    a.href = url;
-    a.download = "FinTrack_Backup.json";
-    a.click();
+
+    const link =
+      document.createElement("a");
+
+
+    link.href=url;
+
+    link.download=
+      "FinTrack_Backup.json";
+
+
+    link.click();
+
 
     URL.revokeObjectURL(url);
+
   };
 
-  const exportCSV = () => {
-    if (!transactions.length) {
-      alert("No transactions found.");
+
+
+
+  // CSV Export
+
+  const exportCSV = ()=>{
+
+
+    if(!transactions.length){
+
+      alert(
+        "No transactions found."
+      );
+
       return;
+
     }
 
-    const headers = [
+
+    const headers=[
       "Title",
       "Category",
       "Type",
       "Amount",
-      "Date",
+      "Date"
     ];
 
-    const rows = transactions.map((t) => [
-      t.title,
-      t.category,
-      t.type,
-      t.amount,
-      t.date,
-    ]);
 
-    const csv = [
+    const rows =
+      transactions.map(item=>[
+
+        item.title,
+        item.category,
+        item.type,
+        item.amount,
+        item.date
+
+      ]);
+
+
+
+    const csv=[
+
       headers.join(","),
-      ...rows.map((r) => r.join(",")),
+
+      ...rows.map(
+        row=>row.join(",")
+      )
+
     ].join("\n");
 
-    const blob = new Blob([csv], {
-      type: "text/csv",
-    });
 
-    const url = URL.createObjectURL(blob);
 
-    const a = document.createElement("a");
+    const blob =
+      new Blob(
+        [csv],
+        {
+          type:"text/csv"
+        }
+      );
 
-    a.href = url;
-    a.download = "Transactions.csv";
-    a.click();
+
+
+    const url =
+      URL.createObjectURL(blob);
+
+
+
+    const link =
+      document.createElement("a");
+
+
+
+    link.href=url;
+
+    link.download=
+      "FinTrack_Transactions.csv";
+
+
+    link.click();
+
 
     URL.revokeObjectURL(url);
+
   };
 
-  const restoreBackup = (e) => {
-    const file = e.target.files[0];
 
-    if (!file) return;
 
-    const reader = new FileReader();
 
-    reader.onload = (event) => {
-      try {
-        const data = JSON.parse(event.target.result);
 
-        setTransactions(data.transactions || []);
-        setBudgets(data.budgets || []);
-        setGoals(data.goals || []);
+  // Restore backup
 
-        alert("Backup restored successfully.");
-      } catch {
-        alert("Invalid backup file.");
+  const restoreBackup=(e)=>{
+
+
+    const file =
+      e.target.files[0];
+
+
+    if(!file)return;
+
+
+
+    const reader =
+      new FileReader();
+
+
+
+    reader.onload=(event)=>{
+
+
+      try{
+
+
+        const data =
+          JSON.parse(
+            event.target.result
+          );
+
+
+
+        setTransactions(
+          data.transactions || []
+        );
+
+
+        setBudgets(
+          data.budgets || []
+        );
+
+
+        setGoals(
+          data.goals || []
+        );
+
+
+        alert(
+          "Backup restored successfully"
+        );
+
+
       }
+      catch{
+
+
+        alert(
+          "Invalid backup file"
+        );
+
+      }
+
+
     };
 
+
+
     reader.readAsText(file);
+
+
   };
 
-  const clearAll = () => {
-    if (
-      !window.confirm(
-        "Delete ALL FinTrack data?"
-      )
-    )
+
+
+
+
+  const clearAll=()=>{
+
+
+    const confirmDelete =
+      window.confirm(
+        "Delete all FinTrack data?"
+      );
+
+
+    if(!confirmDelete)
       return;
 
+
+
     setTransactions([]);
+
     setBudgets([]);
+
     setGoals([]);
+
+
 
     localStorage.clear();
 
-    alert("All data removed.");
+
+
+    alert(
+      "All data removed"
+    );
+
   };
 
-  const resetDemo = () => {
-    if (
-      !window.confirm(
-        "Reset FinTrack?"
+
+
+
+
+  const resetDemo=()=>{
+
+
+    if(
+      window.confirm(
+        "Reload application?"
       )
-    )
-      return;
+    ){
 
-    window.location.reload();
+      window.location.reload();
+
+    }
+
   };
 
-  const Button = ({
-    icon: Icon,
-    title,
-    color,
-    onClick,
-  }) => (
-    <motion.button
-      whileHover={{
-        scale: 1.03,
-      }}
-      whileTap={{
-        scale: 0.97,
-      }}
-      onClick={onClick}
-      className={`flex w-full items-center gap-4 rounded-2xl ${color} p-5 text-white`}
-    >
-      <Icon size={24} />
-      <span className="font-semibold">
-        {title}
-      </span>
-    </motion.button>
-  );
 
-  return (
-    <motion.div
-      initial={{
-        opacity: 0,
-        y: 20,
-      }}
-      animate={{
-        opacity: 1,
-        y: 0,
-      }}
-      className="rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur-xl"
-    >
-      <div className="mb-8 flex items-center gap-3">
-        <Database
-          className="text-cyan-400"
-          size={28}
-        />
 
-        <h2 className="text-2xl font-bold text-white">
-          Data Management
-        </h2>
-      </div>
 
-      <div className="space-y-4">
 
-        <Button
-          icon={Download}
-          title="Backup JSON"
-          color="bg-cyan-600"
-          onClick={backupJSON}
-        />
 
-        <Button
-          icon={FileSpreadsheet}
-          title="Export CSV"
-          color="bg-green-600"
-          onClick={exportCSV}
-        />
+  const actions=[
 
-        <Button
-          icon={Upload}
-          title="Restore Backup"
-          color="bg-blue-600"
-          onClick={() =>
-            fileInput.current.click()
-          }
-        />
+    {
+      title:"Backup JSON",
+      icon:Download,
+      action:backupJSON,
+      style:
+      "from-cyan-500 to-blue-600"
+    },
 
-        <Button
-          icon={Trash2}
-          title="Clear All Data"
-          color="bg-red-600"
-          onClick={clearAll}
-        />
 
-        <Button
-          icon={RotateCcw}
-          title="Reload App"
-          color="bg-yellow-600"
-          onClick={resetDemo}
-        />
+    {
+      title:"Export CSV",
+      icon:FileSpreadsheet,
+      action:exportCSV,
+      style:
+      "from-green-500 to-emerald-600"
+    },
 
-      </div>
 
-      <input
-        ref={fileInput}
-        type="file"
-        hidden
-        accept=".json"
-        onChange={restoreBackup}
-      />
-    </motion.div>
-  );
+    {
+      title:"Restore Backup",
+      icon:Upload,
+      action:()=>fileInput.current.click(),
+      style:
+      "from-blue-500 to-indigo-600"
+    },
+
+
+    {
+      title:"Clear All Data",
+      icon:Trash2,
+      action:clearAll,
+      style:
+      "from-red-500 to-rose-600"
+    },
+
+
+    {
+      title:"Reload App",
+      icon:RotateCcw,
+      action:resetDemo,
+      style:
+      "from-yellow-500 to-orange-600"
+    }
+
+  ];
+
+
+
+
+
+
+return (
+
+<motion.div
+
+initial={{
+opacity:0,
+y:25
+}}
+
+animate={{
+opacity:1,
+y:0
+}}
+
+className="
+relative
+overflow-hidden
+rounded-3xl
+
+border
+border-slate-200
+dark:border-white/10
+
+bg-white
+dark:bg-white/5
+
+p-8
+
+shadow-xl
+
+backdrop-blur-xl
+
+"
+
+>
+
+
+<div
+className="
+absolute
+-right-20
+-top-20
+h-60
+w-60
+rounded-full
+bg-cyan-500/20
+blur-3xl
+"
+/>
+
+
+
+<div className="
+relative
+mb-8
+flex
+items-center
+gap-3
+">
+
+
+<div className="
+rounded-2xl
+bg-cyan-500/20
+p-3
+">
+
+<Database
+className="text-cyan-400"
+/>
+
+</div>
+
+
+<div>
+
+<h2 className="
+text-2xl
+font-bold
+
+text-slate-900
+dark:text-white
+">
+
+Data Management
+
+</h2>
+
+
+<p className="
+text-sm
+text-slate-500
+dark:text-slate-400
+">
+
+Protect and manage your financial data
+
+</p>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+<div className="
+mb-6
+flex
+items-center
+gap-3
+rounded-2xl
+bg-cyan-500/10
+p-4
+">
+
+
+<ShieldCheck
+className="text-cyan-400"
+/>
+
+
+<p className="
+text-sm
+text-slate-600
+dark:text-slate-300
+">
+
+Your data is stored locally and securely.
+
+</p>
+
+
+</div>
+
+
+
+
+
+<div className="
+grid
+gap-4
+md:grid-cols-2
+">
+
+
+{actions.map((item)=>{
+
+
+const Icon=item.icon;
+
+
+return (
+
+<motion.button
+
+key={item.title}
+
+whileHover={{
+scale:1.03,
+y:-3
+}}
+
+whileTap={{
+scale:.97
+}}
+
+onClick={item.action}
+
+className={`
+flex
+items-center
+gap-4
+rounded-2xl
+
+bg-gradient-to-r
+${item.style}
+
+p-5
+
+font-semibold
+
+text-white
+
+shadow-lg
+
+transition
+
+`}
+
+>
+
+
+<div className="
+rounded-xl
+bg-white/20
+p-3
+">
+
+
+<Icon
+size={24}
+/>
+
+
+</div>
+
+
+{item.title}
+
+
+</motion.button>
+
+
+)
+
+
+})}
+
+
+</div>
+
+
+
+
+
+<input
+
+ref={fileInput}
+
+type="file"
+
+hidden
+
+accept=".json"
+
+onChange={restoreBackup}
+
+/>
+
+
+</motion.div>
+
+
+)
+
 }
+
 
 export default DataManagement;

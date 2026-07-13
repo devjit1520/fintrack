@@ -10,10 +10,9 @@ function WelcomeHero() {
   const [time, setTime] = useState(new Date());
 
   useEffect(() => {
-    const timer = setInterval(
-      () => setTime(new Date()),
-      1000
-    );
+    const timer = setInterval(() => {
+      setTime(new Date());
+    }, 1000);
 
     return () => clearInterval(timer);
   }, []);
@@ -30,65 +29,86 @@ function WelcomeHero() {
     "Track today. Prosper tomorrow.",
     "Financial discipline creates financial freedom.",
     "Your money should work for you.",
-    "Consistency beats intensity."
+    "Consistency beats intensity.",
   ];
 
-  const quote =
-    quotes[time.getDate() % quotes.length];
+  const quote = quotes[time.getDate() % quotes.length];
 
   return (
-    <motion.div
+    <motion.section
       initial={{
         opacity: 0,
-        y: 20,
+        y: 25,
       }}
       animate={{
         opacity: 1,
         y: 0,
       }}
+      transition={{
+        duration: 0.5,
+      }}
       className="
         relative
         overflow-hidden
         rounded-3xl
+
         border
-        border-white/10
-        bg-white/5
+        border-slate-200
+        dark:border-slate-800
+
+        bg-white
+        dark:bg-slate-900
+
         p-8
-        backdrop-blur-xl
+
+        shadow-lg
+        dark:shadow-xl
+        dark:shadow-cyan-500/5
+
+        transition-all
+        duration-300
       "
     >
-      {/* Glow */}
-      <div className="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-cyan-500/10 blur-[120px]" />
+      {/* Background Glow */}
+      <div className="absolute -right-24 -top-24 h-80 w-80 rounded-full bg-cyan-500/10 blur-[130px]" />
 
       <div className="relative flex flex-col justify-between gap-8 lg:flex-row">
 
+        {/* Left */}
         <div>
 
           <div className="mb-4 flex items-center gap-3">
 
-            <Sparkles className="text-cyan-400" />
+            <Sparkles
+              size={22}
+              className="text-cyan-500"
+            />
 
-            <span className="text-cyan-400 font-semibold">
+            <span className="font-semibold text-cyan-500">
               Welcome Back
             </span>
 
           </div>
 
-          <h1 className="text-5xl font-bold text-white">
+          <h1 className="text-4xl font-bold text-slate-900 dark:text-white lg:text-5xl">
             {greeting}, Devjit 👋
           </h1>
 
-          <p className="mt-6 max-w-xl text-lg text-slate-300">
+          <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-600 dark:text-slate-400">
             {quote}
           </p>
 
         </div>
 
+        {/* Right */}
         <div className="space-y-5">
 
-          <div className="flex items-center gap-3 text-slate-300">
+          <div className="flex items-center gap-3 text-slate-700 dark:text-slate-300">
 
-            <Clock3 className="text-cyan-400" />
+            <Clock3
+              size={22}
+              className="text-cyan-500"
+            />
 
             <span className="text-2xl font-bold">
               {time.toLocaleTimeString()}
@@ -96,16 +116,19 @@ function WelcomeHero() {
 
           </div>
 
-          <div className="flex items-center gap-3 text-slate-300">
+          <div className="flex items-center gap-3 text-slate-700 dark:text-slate-300">
 
-            <CalendarDays className="text-cyan-400" />
+            <CalendarDays
+              size={22}
+              className="text-cyan-500"
+            />
 
             <span className="text-lg">
-              {time.toLocaleDateString(undefined,{
-                weekday:"long",
-                day:"numeric",
-                month:"long",
-                year:"numeric"
+              {time.toLocaleDateString(undefined, {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+                year: "numeric",
               })}
             </span>
 
@@ -114,8 +137,7 @@ function WelcomeHero() {
         </div>
 
       </div>
-
-    </motion.div>
+    </motion.section>
   );
 }
 

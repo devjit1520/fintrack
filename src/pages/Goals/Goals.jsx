@@ -17,9 +17,9 @@ function Goals() {
       <GoalList />
 
       <AddGoalModal
-        open={open}
-        onClose={() => setOpen(false)}
-      />
+      open={open}
+      onClose={() => setOpen(false)}
+    />
     </section>
   );
 }

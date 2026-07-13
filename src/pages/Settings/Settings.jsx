@@ -1,7 +1,7 @@
 import SettingsHeader from "../../components/settings/SettingsHeader";
 import ProfileCard from "../../components/settings/ProfileCard";
 import AppearanceSettings from "../../components/settings/AppearanceSettings";
-import CurrencySettings from "../../components/settings/CurrencySettings";
+// import CurrencySettings from "../../components/settings/CurrencySettings";
 import NotificationSettings from "../../components/settings/NotificationSettings";
 import DataManagement from "../../components/settings/DataManagement";
 import SecuritySettings from "../../components/settings/SecuritySettings";
@@ -20,7 +20,7 @@ function Settings() {
 
         <AppearanceSettings />
 
-        <CurrencySettings />
+        {/* <CurrencySettings /> */}
 
         <NotificationSettings />
 

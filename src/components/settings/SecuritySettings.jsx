@@ -1,191 +1,365 @@
-import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
-  Shield,
+  ShieldCheck,
   Lock,
-  Fingerprint,
+  Eye,
   KeyRound,
-  Clock3,
-  LogOut,
+  Smartphone,
 } from "lucide-react";
+import { useState } from "react";
 
 function SecuritySettings() {
-  const [settings, setSettings] = useState(() => {
-    const saved = localStorage.getItem("securitySettings");
 
-    return saved
-      ? JSON.parse(saved)
-      : {
-          autoLock: true,
-          biometric: false,
-          twoFactor: false,
-          sessionTimeout: "15 Minutes",
-        };
-  });
+  const [twoFactor, setTwoFactor] = useState(false);
+  const [showActivity, setShowActivity] = useState(true);
 
-  useEffect(() => {
-    localStorage.setItem(
-      "securitySettings",
-      JSON.stringify(settings)
-    );
-  }, [settings]);
 
-  const toggle = (key) => {
-    setSettings((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
-  };
+  const securityItems = [
+    {
+      title: "Two Factor Authentication",
+      description:
+        "Add an extra layer of security to your account",
+      icon: Smartphone,
+      value: twoFactor,
+      toggle: () => setTwoFactor(!twoFactor),
+    },
 
-  const sessionOptions = [
-    "5 Minutes",
-    "15 Minutes",
-    "30 Minutes",
-    "1 Hour",
-    "Never",
+    {
+      title: "Login Activity",
+      description:
+        "Show recent login and device activity",
+      icon: Eye,
+      value: showActivity,
+      toggle: () => setShowActivity(!showActivity),
+    },
   ];
 
-  const Switch = ({ enabled, onClick }) => (
-    <button
-      onClick={onClick}
-      className={`relative h-7 w-14 rounded-full transition ${
-        enabled ? "bg-cyan-500" : "bg-slate-600"
-      }`}
-    >
-      <motion.div
-        layout
-        transition={{
-          type: "spring",
-          stiffness: 500,
-          damping: 30,
-        }}
-        className="absolute top-1 h-5 w-5 rounded-full bg-white"
-        style={{
-          left: enabled ? "34px" : "4px",
-        }}
-      />
-    </button>
-  );
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -5 }}
-      className="rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur-xl"
-    >
-      <div className="mb-8 flex items-center gap-3">
-        <Shield
-          className="text-cyan-400"
-          size={28}
-        />
 
-        <h2 className="text-2xl font-bold text-white">
-          Security
-        </h2>
+      initial={{
+        opacity:0,
+        y:25
+      }}
+
+      animate={{
+        opacity:1,
+        y:0
+      }}
+
+      whileHover={{
+        y:-5
+      }}
+
+      className="
+      rounded-3xl
+      border
+      border-white/10
+
+      bg-white
+      
+      p-8
+
+      backdrop-blur-xl
+
+      dark:bg-white/5
+
+      "
+    >
+
+
+      {/* Header */}
+
+      <div className="
+      mb-8
+      flex
+      items-center
+      gap-3
+      
+      ">
+
+        <div className="
+        rounded-2xl
+        bg-cyan-500/20
+        p-3
+        ">
+
+          <ShieldCheck
+            size={28}
+            className="text-cyan-400"
+          />
+
+        </div>
+
+
+        <div>
+
+          <h2 className="
+          text-2xl
+          font-bold
+          text-black 
+          dark:text-white
+          ">
+            Security
+          </h2>
+
+          <p className="
+          text-slate-400
+          ">
+            Manage your account security
+          </p>
+
+        </div>
+
       </div>
+
+
+
+      {/* Security Options */}
 
       <div className="space-y-5">
 
-        <div className="flex items-center justify-between rounded-2xl bg-slate-800/50 p-5">
-          <div className="flex items-center gap-4">
-            <Lock className="text-cyan-400" />
-            <div>
-              <h3 className="text-white font-semibold">
-                Auto Lock
-              </h3>
-              <p className="text-sm text-slate-400">
-                Lock app after inactivity
-              </p>
-            </div>
-          </div>
 
-          <Switch
-            enabled={settings.autoLock}
-            onClick={() => toggle("autoLock")}
-          />
-        </div>
+        {securityItems.map((item)=>{
 
-        <div className="flex items-center justify-between rounded-2xl bg-slate-800/50 p-5">
-          <div className="flex items-center gap-4">
-            <Fingerprint className="text-cyan-400" />
-            <div>
-              <h3 className="text-white font-semibold">
-                Biometric Login
-              </h3>
-              <p className="text-sm text-slate-400">
-                Fingerprint / Face ID
-              </p>
-            </div>
-          </div>
+          const Icon=item.icon;
 
-          <Switch
-            enabled={settings.biometric}
-            onClick={() => toggle("biometric")}
-          />
-        </div>
 
-        <div className="flex items-center justify-between rounded-2xl bg-slate-800/50 p-5">
-          <div className="flex items-center gap-4">
-            <KeyRound className="text-cyan-400" />
-            <div>
-              <h3 className="text-white font-semibold">
-                Two-Factor Authentication
-              </h3>
-              <p className="text-sm text-slate-400">
-                Extra account security
-              </p>
-            </div>
-          </div>
+          return (
 
-          <Switch
-            enabled={settings.twoFactor}
-            onClick={() => toggle("twoFactor")}
-          />
-        </div>
+            <div
 
-        <div className="rounded-2xl bg-slate-800/50 p-5">
-          <div className="mb-3 flex items-center gap-3">
-            <Clock3 className="text-cyan-400" />
+            key={item.title}
 
-            <h3 className="font-semibold text-white">
-              Session Timeout
-            </h3>
-          </div>
+            className="
+            flex
+            items-center
+            justify-between
 
-          <select
-            value={settings.sessionTimeout}
-            onChange={(e) =>
-              setSettings({
-                ...settings,
-                sessionTimeout: e.target.value,
-              })
-            }
-            className="w-full rounded-xl border border-white/10 bg-slate-900 p-3 text-white"
-          >
-            {sessionOptions.map((item) => (
-              <option
-                key={item}
-                value={item}
+            rounded-2xl
+            bg-slate-800/50
+
+            p-5
+            "
+
+            >
+
+              <div className="
+              flex
+              items-center
+              gap-4
+              
+              ">
+
+
+                <div className="
+                rounded-xl
+                bg-cyan-500/20
+                p-3
+                ">
+
+                  <Icon
+                  size={22}
+                  className="text-cyan-400"
+                  />
+
+                </div>
+
+
+
+                <div>
+
+                  <h3 className="
+                  font-semibold
+                  text-white
+                  ">
+                    {item.title}
+                  </h3>
+
+                  <p className="
+                  text-sm
+                  text-slate-400
+                  ">
+                    {item.description}
+                  </p>
+
+                </div>
+
+
+              </div>
+
+
+
+              <button
+
+              onClick={item.toggle}
+
+              className={`
+              relative
+              h-7
+              w-14
+              rounded-full
+              transition
+
+              ${
+                item.value
+                ?
+                "bg-cyan-500"
+                :
+                "bg-slate-600"
+              }
+
+              `}
               >
-                {item}
-              </option>
-            ))}
-          </select>
-        </div>
 
-        <button className="w-full rounded-2xl bg-blue-600 py-4 font-semibold text-white transition hover:bg-blue-500">
-          Change Password
-        </button>
+                <motion.div
 
-        <button className="flex w-full items-center justify-center gap-2 rounded-2xl bg-red-600 py-4 font-semibold text-white transition hover:bg-red-500">
-          <LogOut size={20} />
-          Logout
-        </button>
+                animate={{
+                  x:item.value ? 28 : 4
+                }}
+
+                transition={{
+                  type:"spring",
+                  stiffness:400
+                }}
+
+                className="
+                absolute
+                top-1
+
+                h-5
+                w-5
+
+                rounded-full
+                bg-white
+                "
+
+                />
+
+              </button>
+
+
+            </div>
+
+          )
+
+        })}
+
 
       </div>
+
+
+
+      {/* Password Section */}
+
+      <div className="
+      mt-8
+      rounded-2xl
+      bg-slate-800/50
+      p-5
+      ">
+
+
+        <div className="
+        flex
+        items-center
+        gap-3
+        mb-4
+        ">
+
+          <KeyRound
+          className="text-cyan-400"
+          size={22}
+          />
+
+
+          <h3 className="
+          font-semibold
+          text-white
+          ">
+            Password
+          </h3>
+
+        </div>
+
+
+        <button
+
+        className="
+        flex
+        w-full
+        items-center
+        justify-center
+        gap-3
+
+        rounded-xl
+
+        bg-gradient-to-r
+        from-cyan-500
+        to-blue-600
+
+        py-3
+
+        font-semibold
+        text-white
+
+        transition
+        hover:scale-[1.02]
+
+        "
+        >
+
+          <Lock size={18}/>
+
+          Change Password
+
+        </button>
+
+
+      </div>
+
+
+
+      {/* Status */}
+
+      <div className="
+      mt-6
+
+      flex
+      items-center
+      gap-3
+
+      rounded-2xl
+
+      bg-green-500/10
+
+      p-4
+      ">
+
+
+        <ShieldCheck
+        className="text-green-400"
+        />
+
+
+        <p className="
+        text-sm
+        text-green-400
+        ">
+
+          Your account security is up to date.
+
+        </p>
+
+
+      </div>
+
+
+
     </motion.div>
   );
 }
+
 
 export default SecuritySettings;

@@ -24,12 +24,14 @@ function EditTransactionModal({ transaction, onClose }) {
     }
   }, [transaction]);
 
+
   const handleChange = (e) => {
     setForm((prev) => ({
       ...prev,
       [e.target.name]: e.target.value,
     }));
   };
+
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -43,20 +45,52 @@ function EditTransactionModal({ transaction, onClose }) {
     onClose();
   };
 
+
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
+      className="
+        fixed
+        inset-0
+        z-50
+        flex
+        items-center
+        justify-center
+        bg-black/70
+        p-4
+      "
       onClick={onClose}
     >
+
       <div
-        className="w-full max-w-lg rounded-3xl bg-slate-900 p-8"
+        className="
+          w-full
+          max-w-lg
+          rounded-3xl
+
+          bg-white
+          p-8
+
+          dark:bg-slate-900
+        "
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="mb-6 text-2xl font-bold text-white">
+
+        <h2
+          className="
+            mb-6
+            text-2xl
+            font-bold
+
+            text-slate-900
+            dark:text-white
+          "
+        >
           Edit Transaction
         </h2>
 
+
         <form onSubmit={handleSubmit} className="space-y-4">
+
 
           <input
             type="text"
@@ -64,8 +98,29 @@ function EditTransactionModal({ transaction, onClose }) {
             value={form.title}
             onChange={handleChange}
             placeholder="Title"
-            className="w-full rounded-xl bg-slate-800 p-3 text-white"
+            className="
+              w-full
+              rounded-xl
+
+              border
+              border-slate-200
+
+              bg-slate-100
+
+              p-3
+
+              text-slate-900
+
+              outline-none
+
+              focus:border-blue-500
+
+              dark:border-slate-700
+              dark:bg-slate-800
+              dark:text-white
+            "
           />
+
 
           <input
             type="number"
@@ -73,8 +128,29 @@ function EditTransactionModal({ transaction, onClose }) {
             value={form.amount}
             onChange={handleChange}
             placeholder="Amount"
-            className="w-full rounded-xl bg-slate-800 p-3 text-white"
+            className="
+              w-full
+              rounded-xl
+
+              border
+              border-slate-200
+
+              bg-slate-100
+
+              p-3
+
+              text-slate-900
+
+              outline-none
+
+              focus:border-blue-500
+
+              dark:border-slate-700
+              dark:bg-slate-800
+              dark:text-white
+            "
           />
+
 
           <input
             type="text"
@@ -82,47 +158,144 @@ function EditTransactionModal({ transaction, onClose }) {
             value={form.category}
             onChange={handleChange}
             placeholder="Category"
-            className="w-full rounded-xl bg-slate-800 p-3 text-white"
+            className="
+              w-full
+              rounded-xl
+
+              border
+              border-slate-200
+
+              bg-slate-100
+
+              p-3
+
+              text-slate-900
+
+              outline-none
+
+              focus:border-blue-500
+
+              dark:border-slate-700
+              dark:bg-slate-800
+              dark:text-white
+            "
           />
+
 
           <select
             name="type"
             value={form.type}
             onChange={handleChange}
-            className="w-full rounded-xl bg-slate-800 p-3 text-white"
+            className="
+              w-full
+              rounded-xl
+
+              border
+              border-slate-200
+
+              bg-slate-100
+
+              p-3
+
+              text-slate-900
+
+              outline-none
+
+              focus:border-blue-500
+
+              dark:border-slate-700
+              dark:bg-slate-800
+              dark:text-white
+            "
           >
-            <option value="income">Income</option>
-            <option value="expense">Expense</option>
+            <option value="income">
+              Income
+            </option>
+
+            <option value="expense">
+              Expense
+            </option>
           </select>
+
 
           <input
             type="date"
             name="date"
             value={form.date}
             onChange={handleChange}
-            className="w-full rounded-xl bg-slate-800 p-3 text-white"
+            className="
+              w-full
+              rounded-xl
+
+              border
+              border-slate-200
+
+              bg-slate-100
+
+              p-3
+
+              text-slate-900
+
+              outline-none
+
+              focus:border-blue-500
+
+              dark:border-slate-700
+              dark:bg-slate-800
+              dark:text-white
+            "
           />
+
 
           <div className="flex justify-end gap-3 pt-4">
 
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl bg-slate-700 px-5 py-3 text-white"
+              className="
+                rounded-xl
+                bg-slate-200
+                px-5
+                py-3
+                text-slate-900
+
+                transition
+
+                hover:bg-slate-300
+
+                dark:bg-slate-700
+                dark:text-white
+                dark:hover:bg-slate-600
+              "
             >
               Cancel
             </button>
 
+
             <button
               type="submit"
-              className="rounded-xl bg-blue-600 px-5 py-3 text-white"
+              className="
+                rounded-xl
+                bg-blue-600
+                px-5
+                py-3
+                text-white
+
+                transition
+
+                hover:bg-blue-700
+                active:scale-95
+              "
             >
               Save Changes
             </button>
 
           </div>
+
         </form>
+
       </div>
+
     </div>
   );
 }

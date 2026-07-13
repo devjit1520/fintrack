@@ -38,7 +38,7 @@ function CurrencySettings() {
     setValue,
     options,
   }) => (
-    <div className="rounded-2xl bg-slate-800/60 p-5">
+    <div className="rounded-2xl  bg-slate-800/60 p-5">
       <div className="mb-3 flex items-center gap-3">
         <Icon
           className="text-cyan-400"
