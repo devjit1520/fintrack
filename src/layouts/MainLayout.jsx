@@ -1,28 +1,67 @@
+import {useEffect, useState } from "react";
 import { Outlet } from "react-router-dom";
-import { motion } from "framer-motion";
+
+import GlobalSearch from "../components/search/GlobalSearch";
+
 import Sidebar from "../components/layout/Sidebar";
-import Navbar from "../components/layout/Navbar";
+import MobileSidebar from "../components/layout/MobileSidebar";
+import TopHeader from "../components/layout/TopHeader";
 
 function MainLayout() {
+  const [sidebarOpen, setSidebarOpen , searchOpen, setSearchOpen] = useState(false);
+
+  useEffect(() => {
+
+  const handleKey = (e) => {
+
+    if (e.ctrlKey && e.key.toLowerCase() === "k") {
+
+      e.preventDefault();
+
+      setSearchOpen(true);
+
+    }
+
+  };
+
+  window.addEventListener("keydown", handleKey);
+
+  return () =>
+    window.removeEventListener("keydown", handleKey);
+
+}, []);
+
   return (
-    <div className="flex min-h-screen bg-slate-950 text-white">
+    <div className="min-h-screen bg-slate-950 text-white">
+
+      {/* Desktop Sidebar */}
       <Sidebar />
 
-      <div className="flex-1 lg:ml-72">
-        <Navbar />
+      {/* Mobile Sidebar */}
+      <MobileSidebar
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
 
-        {/* <main className="p-6 lg:p-8">
+      {/* Main Content */}
+      <div className="lg:ml-72">
+
+        {/* Mobile Header */}
+<TopHeader
+    openSidebar={() => setSidebarOpen(true)}
+    openSearch={() => setSearchOpen(true)}
+/>
+
+        <main className="min-h-screen p-4 md:p-6 lg:p-8">
           <Outlet />
-        </main> */}
-        <motion.main
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="flex-1 p-6"
-        >
-          <Outlet />
-        </motion.main>
+        </main>
+
       </div>
+<GlobalSearch
+    open={searchOpen}
+    onClose={() => setSearchOpen(false)}
+/>
+
     </div>
   );
 }

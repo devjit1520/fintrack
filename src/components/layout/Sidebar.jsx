@@ -1,11 +1,10 @@
 import Logo from "./Logo";
 import SidebarItem from "./SidebarItem";
-
 import { navigation } from "../../data/navigation";
 
 function Sidebar() {
   return (
-    <aside className="fixed left-0 top-0 hidden h-screen w-72 border-r border-slate-800 bg-slate-950 lg:flex lg:flex-col">
+   <aside className="fixed left-0 top-0 hidden h-screen w-72 border-r border-slate-800 bg-slate-950 lg:flex lg:flex-col">
 
       <Logo />
 
