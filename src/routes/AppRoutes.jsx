@@ -9,6 +9,7 @@ import Goals from "../pages/Goals/Goals";
 import Analytics from "../pages/Analytics/Analytics";
 import Settings from "../pages/Settings/Settings";
 // import Analytics from "./pages/Analytics";
+import Profile from "../pages/Profile/Profile";
 
 function AppRoutes() {
   return (
@@ -22,6 +23,7 @@ function AppRoutes() {
         <Route path="/settings" element={<Settings />} />
          {/* Add this */}
   {/* <Route path="/analytics" element={<Analytics />} /> */}
+   <Route path="/profile" element={<Profile />} />
       </Route>
     </Routes>
   );

@@ -64,6 +64,11 @@ function GoalProvider({ children }) {
     [goals]
   );
 
+  const clearGoals = () => {
+  setGoals([]);
+  localStorage.removeItem("goals");
+};
+
   return (
     <GoalContext.Provider
       value={{
@@ -74,6 +79,7 @@ function GoalProvider({ children }) {
         addGoal,
         updateGoal,
         deleteGoal,
+        clearGoals,
       }}
     >
       {children}

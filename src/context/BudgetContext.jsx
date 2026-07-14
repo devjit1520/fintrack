@@ -54,6 +54,11 @@ function BudgetProvider({ children }) {
     );
   }, [budgets]);
 
+  const clearBudgets = () => {
+  setBudgets([]);
+  localStorage.removeItem("budgets");
+};
+
   return (
     <BudgetContext.Provider
       value={{
@@ -62,6 +67,7 @@ function BudgetProvider({ children }) {
         addBudget,
         updateBudget,
         deleteBudget,
+        clearBudgets,
       }}
     >
       {children}

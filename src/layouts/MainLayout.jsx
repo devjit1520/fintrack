@@ -8,7 +8,8 @@ import MobileSidebar from "../components/layout/MobileSidebar";
 import TopHeader from "../components/layout/TopHeader";
 
 function MainLayout() {
-  const [sidebarOpen, setSidebarOpen , searchOpen, setSearchOpen] = useState(false);
+ const [sidebarOpen, setSidebarOpen] = useState(false);
+const [searchOpen, setSearchOpen] = useState(false);
 
   useEffect(() => {
 
