@@ -1,1497 +1,312 @@
-import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 
 import {
+  AlertTriangle,
+  CheckCircle2,
+  CircleDollarSign,
   Pencil,
   Trash2,
-  Wallet,
+  TrendingUp,
 } from "lucide-react";
 
+function getSafeNumber(value) {
+  const number = Number(value);
 
-import Card from "../common/Card";
-
-import useBudget from "../../hooks/useBudget";
-import useFinance from "../../hooks/useFinance";
-
-import EditBudgetModal from "./EditBudgetModal";
-
-
-
-function BudgetCard({ budget }) {
-
-
-  const {
-    deleteBudget,
-  } = useBudget();
-
-
-  const {
-    transactions,
-  } = useFinance();
-
-
-
-  const [editing, setEditing] = useState(false);
-
-
-
-
-
-  // Calculate spent amount
-
-  const spent = transactions
-    .filter(
-      (item) =>
-        item.type === "expense" &&
-        item.category === budget.category
-    )
-    .reduce(
-      (sum, item) =>
-        sum + Number(item.amount),
-      0
-    );
-
-
-
-  const remaining =
-    budget.amount - spent;
-
-
-
-  const progress =
-    budget.amount > 0
-      ? Math.min(
-          (spent / budget.amount) * 100,
-          100
-        )
-      : 0;
-
-
-
-
-
-  // Progress color
-
-  const progressColor =
-    progress >= 100
-      ? "#ef4444"
-      : progress >= 80
-      ? "#f59e0b"
-      : "#06b6d4";
-
-
-
-
-
-
-  // Remaining days
-
-  const today = new Date();
-
-
-  const daysInMonth =
-    new Date(
-      today.getFullYear(),
-      today.getMonth() + 1,
-      0
-    ).getDate();
-
-
-
-  const remainingDays =
-    Math.max(
-      daysInMonth - today.getDate(),
-      1
-    );
-
-
-
-
-  const dailyBudget =
-    remaining > 0
-      ? remaining / remainingDays
-      : 0;
-
-
-
-
-
-
-  // Status
-
-  const status =
-    progress >= 100
-      ? "Over Budget"
-      : progress >= 80
-      ? "Warning"
-      : "On Track";
-
-
-
-  const statusColor =
-    progress >= 100
-
-      ?
-
-      "bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30"
-
-      :
-
-      progress >= 80
-
-      ?
-
-      "bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 border-yellow-500/30"
-
-      :
-
-      "bg-green-500/20 text-green-600 dark:text-green-400 border-green-500/30";
-
-
-
-
-
-
-  return (
-
-    <>
-
-
-      <motion.div
-
-        initial={{
-          opacity:0,
-          y:30,
-        }}
-
-        animate={{
-          opacity:1,
-          y:0,
-        }}
-
-        whileHover={{
-          y:-8,
-          scale:1.02,
-        }}
-
-        transition={{
-          duration:0.4,
-        }}
-
-      >
-
-
-
-
-        <Card
-
-          className="
-
-            group
-
-            relative
-
-            overflow-hidden
-
-            rounded-3xl
-
-
-            border
-
-            border-slate-200/50
-
-
-            bg-white
-
-
-            shadow-xl
-
-            shadow-slate-200/40
-
-
-            backdrop-blur-xl
-
-
-            transition-all
-
-            duration-500
-
-
-            hover:shadow-2xl
-
-
-
-            dark:border-white/10
-
-
-            dark:bg-slate-900/70
-
-
-            dark:shadow-black/30
-
-          "
-
-        >
-
-
-
-
-          {/* Animated Glow */}
-
-
-          <div
-
-            className="
-
-              absolute
-
-              -right-24
-
-              -top-24
-
-
-              h-56
-
-              w-56
-
-
-              rounded-full
-
-
-              bg-cyan-400/20
-
-
-              blur-3xl
-
-
-              transition-all
-
-              duration-700
-
-
-              group-hover:scale-125
-
-            "
-
-          />
-
-
-
-          <div
-
-            className="
-
-              absolute
-
-              -bottom-24
-
-              -left-24
-
-
-              h-56
-
-              w-56
-
-
-              rounded-full
-
-
-              bg-blue-500/20
-
-
-              blur-3xl
-
-
-              transition-all
-
-              duration-700
-
-
-              group-hover:scale-125
-
-            "
-
-          />
-
-
-
-
-
-
-
-          {/* Header */}
-
-
-          <div
-
-            className="
-
-              relative
-
-              flex
-
-              items-center
-
-              justify-between
-
-            "
-
-          >
-
-
-
-
-            {/* Category */}
-
-
-            <div
-
-              className="
-
-                flex
-
-                items-center
-
-                gap-4
-
-              "
-
-            >
-
-
-
-              <div
-
-                className="
-
-                  flex
-
-                  h-14
-
-                  w-14
-
-                  items-center
-
-                  justify-center
-
-
-                  rounded-2xl
-
-
-                  bg-gradient-to-br
-
-                  from-cyan-500
-
-                  to-blue-600
-
-
-                  text-white
-
-
-                  shadow-lg
-
-                  shadow-blue-500/30
-
-                "
-
-              >
-
-                <Wallet size={28}/>
-
-
-              </div>
-
-
-
-
-
-              <div>
-
-
-                <h2
-
-                  className="
-
-                    text-2xl
-
-                    font-bold
-
-
-                    text-slate-900
-
-
-                    dark:text-white
-
-                  "
-
-                >
-
-                  {budget.category}
-
-
-                </h2>
-
-
-
-                <p
-
-                  className="
-
-                    text-sm
-
-
-                    text-slate-500
-
-
-                    dark:text-slate-400
-
-                  "
-
-                >
-
-                  Monthly Budget
-
-
-                </p>
-
-
-
-              </div>
-
-
-
-            </div>
-            
-            {/* Action Buttons */}
-
-            <div className="flex gap-3">
-
-
-              <motion.button
-
-                whileHover={{
-                  scale:1.1,
-                  rotate:8,
-                }}
-
-                whileTap={{
-                  scale:0.9,
-                }}
-
-                onClick={() =>
-                  setEditing(true)
-                }
-
-                className="
-
-                  rounded-xl
-
-                  border
-
-                  border-blue-500/20
-
-
-                  bg-blue-500/10
-
-
-                  p-3
-
-
-                  text-blue-600
-
-
-                  transition
-
-
-                  hover:bg-blue-500/20
-
-
-                  dark:text-blue-400
-
-                "
-
-              >
-
-                <Pencil size={18}/>
-
-              </motion.button>
-
-
-
-
-
-              <motion.button
-
-                whileHover={{
-                  scale:1.1,
-                  rotate:-8,
-                }}
-
-                whileTap={{
-                  scale:0.9,
-                }}
-
-                onClick={() => {
-
-                  if(
-                    window.confirm(
-                      "Delete this budget?"
-                    )
-                  ){
-
-                    deleteBudget(
-                      budget.id
-                    );
-
-                  }
-
-                }}
-
-                className="
-
-                  rounded-xl
-
-
-                  border
-
-                  border-red-500/20
-
-
-                  bg-red-500/10
-
-
-                  p-3
-
-
-                  text-red-500
-
-
-                  transition
-
-
-                  hover:bg-red-500/20
-
-
-                  dark:text-red-400
-
-                "
-
-              >
-
-                <Trash2 size={18}/>
-
-
-              </motion.button>
-
-
-
-            </div>
-
-
-          </div>
-
-
-
-
-
-
-          {/* Main Content */}
-
-
-          <div
-
-            className="
-
-              relative
-
-              mt-8
-
-
-              grid
-
-              gap-8
-
-
-              lg:grid-cols-4
-
-            "
-
-          >
-
-
-
-
-            {/* Circle Progress */}
-
-
-            <div
-
-              className="
-
-                flex
-
-                items-center
-
-                justify-center
-
-
-                lg:justify-start
-
-              "
-
-            >
-
-
-              <div
-
-                className="
-
-                  relative
-
-                  flex
-
-                  h-36
-
-                  w-36
-
-
-                  items-center
-
-                  justify-center
-
-
-                  rounded-full
-
-
-                  border-[10px]
-
-
-                  border-cyan-500
-
-
-                  bg-white
-
-
-                  shadow-lg
-
-
-                  shadow-cyan-500/20
-
-
-                  dark:bg-slate-900
-
-                "
-
-              >
-
-
-
-                <div className="text-center">
-
-
-                  <h3
-
-                    className="
-
-                      text-3xl
-
-                      font-extrabold
-
-
-                      text-slate-900
-
-
-                      dark:text-white
-
-                    "
-
-                  >
-
-                    {progress.toFixed(0)}%
-
-                  </h3>
-
-
-
-                  <p
-
-                    className="
-
-                      text-xs
-
-
-                      text-slate-500
-
-
-                      dark:text-slate-400
-
-                    "
-
-                  >
-
-                    Used
-
-                  </p>
-
-
-                </div>
-
-
-
-              </div>
-
-
-
-            </div>
-
-
-
-
-
-
-
-            {/* Stats */}
-
-
-            <div
-
-              className="
-
-                lg:col-span-3
-
-              "
-
-            >
-
-
-
-
-              <div
-
-                className="
-
-                  grid
-
-                  grid-cols-2
-
-
-                  gap-5
-
-
-                  md:grid-cols-4
-
-                "
-
-              >
-
-
-
-
-
-                {/* Budget */}
-
-
-                <div
-
-                  className="
-
-                    rounded-2xl
-
-
-                    border
-
-                    border-slate-200
-
-
-                    bg-slate-50
-
-
-                    p-4
-
-
-                    dark:border-white/10
-
-
-                    dark:bg-white/5
-
-                  "
-
-                >
-
-                  <p
-
-                    className="
-
-                      text-sm
-
-                      text-slate-500
-
-
-                      dark:text-slate-400
-
-                    "
-
-                  >
-
-                    Budget
-
-                  </p>
-
-
-
-                  <h3
-
-                    className="
-
-                      mt-2
-
-
-                      text-xl
-
-                      font-bold
-
-
-                      text-green-600
-
-
-                      dark:text-green-400
-
-                    "
-
-                  >
-
-                    ₹
-                    {budget.amount.toLocaleString(
-                      "en-IN"
-                    )}
-
-                  </h3>
-
-
-                </div>
-
-
-
-
-
-
-
-                {/* Spent */}
-
-
-                <div
-
-                  className="
-
-                    rounded-2xl
-
-
-                    border
-
-                    border-slate-200
-
-
-                    bg-slate-50
-
-
-                    p-4
-
-
-                    dark:border-white/10
-
-
-                    dark:bg-white/5
-
-                  "
-
-                >
-
-
-                  <p
-
-                    className="
-
-                      text-sm
-
-                      text-slate-500
-
-
-                      dark:text-slate-400
-
-                    "
-
-                  >
-
-                    Spent
-
-                  </p>
-
-
-
-                  <h3
-
-                    className="
-
-                      mt-2
-
-
-                      text-xl
-
-                      font-bold
-
-
-                      text-red-600
-
-
-                      dark:text-red-400
-
-                    "
-
-                  >
-
-                    ₹
-                    {spent.toLocaleString(
-                      "en-IN"
-                    )}
-
-                  </h3>
-
-
-                </div>
-
-
-
-
-
-
-
-                {/* Remaining */}
-
-
-                <div
-
-                  className="
-
-                    rounded-2xl
-
-
-                    border
-
-                    border-slate-200
-
-
-                    bg-slate-50
-
-
-                    p-4
-
-
-                    dark:border-white/10
-
-
-                    dark:bg-white/5
-
-                  "
-
-                >
-
-
-                  <p
-
-                    className="
-
-                      text-sm
-
-                      text-slate-500
-
-
-                      dark:text-slate-400
-
-                    "
-
-                  >
-
-                    Remaining
-
-                  </p>
-
-
-
-                  <h3
-
-                    className="
-
-                      mt-2
-
-
-                      text-xl
-
-                      font-bold
-
-
-                      text-blue-600
-
-
-                      dark:text-blue-400
-
-                    "
-
-                  >
-
-                    ₹
-                    {remaining.toLocaleString(
-                      "en-IN"
-                    )}
-
-                  </h3>
-
-
-                </div>
-
-
-
-
-
-
-
-                {/* Daily Limit */}
-
-
-                <div
-
-                  className="
-
-                    rounded-2xl
-
-
-                    border
-
-                    border-slate-200
-
-
-                    bg-slate-50
-
-
-                    p-4
-
-
-                    dark:border-white/10
-
-
-                    dark:bg-white/5
-
-                  "
-
-                >
-
-
-                  <p
-
-                    className="
-
-                      text-sm
-
-                      text-slate-500
-
-
-                      dark:text-slate-400
-
-                    "
-
-                  >
-
-                    Daily Limit
-
-                  </p>
-
-
-
-                  <h3
-
-                    className="
-
-                      mt-2
-
-
-                      text-xl
-
-                      font-bold
-
-
-                      text-purple-600
-
-
-                      dark:text-purple-400
-
-                    "
-
-                  >
-
-                    ₹
-                    {Math.round(
-                      dailyBudget
-                    ).toLocaleString(
-                      "en-IN"
-                    )}
-
-                  </h3>
-
-
-                </div>
-
-
-
-              </div>
-              
-
-
-
-              {/* Progress Section */}
-
-
-              <div className="mt-8">
-
-
-                <div
-
-                  className="
-
-                    mb-3
-
-                    flex
-
-                    items-center
-
-                    justify-between
-
-                  "
-
-                >
-
-
-                  <span
-
-                    className="
-
-                      text-sm
-
-                      font-medium
-
-
-                      text-slate-600
-
-
-                      dark:text-slate-400
-
-                    "
-
-                  >
-
-                    Spending Progress
-
-                  </span>
-
-
-
-
-                  <span
-
-                    className="
-
-                      text-sm
-
-                      font-bold
-
-
-                      text-slate-900
-
-
-                      dark:text-white
-
-                    "
-
-                  >
-
-                    {progress.toFixed(0)}%
-
-                  </span>
-
-
-
-                </div>
-
-
-
-
-
-
-                {/* Progress Background */}
-
-
-                <div
-
-                  className="
-
-                    h-4
-
-                    overflow-hidden
-
-                    rounded-full
-
-
-                    bg-slate-200
-
-
-                    shadow-inner
-
-
-                    dark:bg-slate-800
-
-                  "
-
-                >
-
-
-
-                  <motion.div
-
-
-                    initial={{
-                      width:0,
-                    }}
-
-
-                    animate={{
-                      width:`${progress}%`,
-                    }}
-
-
-                    transition={{
-                      duration:1.2,
-                      ease:"easeOut",
-                    }}
-
-
-
-                    className="
-
-                      h-full
-
-                      rounded-full
-
-
-                      bg-gradient-to-r
-
-                      from-cyan-400
-
-                      via-blue-500
-
-                      to-indigo-600
-
-
-                      shadow-lg
-
-                    "
-
-
-
-                    style={{
-                      background:
-                        progressColor,
-                    }}
-
-                  />
-
-
-                </div>
-
-
-
-              </div>
-
-
-
-
-
-
-
-
-              {/* Footer */}
-
-
-
-              <div
-
-                className="
-
-                  mt-8
-
-                  flex
-
-                  flex-wrap
-
-                  items-center
-
-                  justify-between
-
-                  gap-4
-
-                "
-
-              >
-
-
-
-
-                {/* Status */}
-
-
-                <motion.span
-
-
-                  whileHover={{
-                    scale:1.05,
-                  }}
-
-
-                  className={`
-
-                    rounded-full
-
-
-                    border
-
-
-                    px-5
-
-                    py-2
-
-
-                    text-sm
-
-                    font-semibold
-
-
-                    ${statusColor}
-
-                  `}
-
-
-                >
-
-                  {status}
-
-
-                </motion.span>
-
-
-
-
-
-
-
-
-                {/* Days Remaining */}
-
-
-
-                <div
-
-                  className="
-
-                    rounded-full
-
-
-                    border
-
-                    border-slate-200
-
-
-                    bg-slate-100
-
-
-                    px-5
-
-                    py-2
-
-
-                    text-sm
-
-                    font-medium
-
-
-                    text-slate-600
-
-
-
-                    dark:border-white/10
-
-
-                    dark:bg-white/5
-
-
-                    dark:text-slate-400
-
-                  "
-
-                >
-
-                  ⏳ {remainingDays} days remaining
-
-
-                </div>
-
-
-
-              </div>
-
-
-
-
-
-            </div>
-
-
-          </div>
-
-
-
-        </Card>
-
-
-
-      </motion.div>
-
-
-
-
-
-
-
-
-      {/* Edit Modal */}
-
-
-      <EditBudgetModal
-
-        open={editing}
-
-        budget={budget}
-
-        onClose={() =>
-          setEditing(false)
-        }
-
-      />
-
-
-
-    </>
-
-  );
-
+  return Number.isFinite(number) ? number : 0;
 }
 
+function formatCurrency(value) {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(getSafeNumber(value));
+}
 
+function getBudgetStatus(percentage) {
+  if (percentage >= 100) {
+    return {
+      key: "over-budget",
+      label: "Over budget",
+      icon: AlertTriangle,
+      badgeClass:
+        "border-rose-500/20 bg-rose-500/10 text-rose-600 dark:text-rose-400",
+      iconClass:
+        "bg-rose-500/10 text-rose-600 dark:text-rose-400",
+      progressClass:
+        "from-rose-500 to-red-500",
+    };
+  }
+
+  if (percentage >= 80) {
+    return {
+      key: "warning",
+      label: "Near limit",
+      icon: TrendingUp,
+      badgeClass:
+        "border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+      iconClass:
+        "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+      progressClass:
+        "from-amber-400 to-orange-500",
+    };
+  }
+
+  return {
+    key: "on-track",
+    label: "On track",
+    icon: CheckCircle2,
+    badgeClass:
+      "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+    iconClass:
+      "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+    progressClass:
+      "from-cyan-500 to-blue-500",
+  };
+}
+
+function BudgetCard({
+  budget,
+  spent = 0,
+  onEdit,
+  onDelete,
+  deleting = false,
+  index = 0,
+}) {
+  const shouldReduceMotion = useReducedMotion();
+
+  const limit = getSafeNumber(
+    budget?.amount ??
+      budget?.limit ??
+      budget?.budgetAmount ??
+      budget?.targetAmount
+  );
+
+  const safeSpent = getSafeNumber(spent);
+
+  const remaining = limit - safeSpent;
+
+  const percentage =
+    limit > 0
+      ? (safeSpent / limit) * 100
+      : safeSpent > 0
+        ? 100
+        : 0;
+
+  const progressPercentage = Math.min(
+    Math.max(percentage, 0),
+    100
+  );
+
+  const status = getBudgetStatus(percentage);
+  const StatusIcon = status.icon;
+
+  const title =
+    budget?.title ||
+    budget?.name ||
+    budget?.category ||
+    "Budget";
+
+  const category =
+    budget?.category ||
+    budget?.title ||
+    "Other";
+
+  return (
+    <motion.article
+      initial={
+        shouldReduceMotion
+          ? false
+          : {
+              opacity: 0,
+              y: 18,
+            }
+      }
+      animate={{
+        opacity: 1,
+        y: 0,
+      }}
+      whileHover={
+        shouldReduceMotion
+          ? undefined
+          : {
+              y: -4,
+            }
+      }
+      transition={{
+        duration: 0.35,
+        delay: Math.min(index * 0.05, 0.3),
+        ease: [0.22, 1, 0.36, 1],
+      }}
+      className="group relative min-w-0 overflow-hidden rounded-3xl border border-slate-200/80 bg-white p-5 shadow-sm transition-shadow hover:shadow-lg dark:border-slate-800 dark:bg-slate-900 sm:p-6"
+    >
+      {/* Decorative glow */}
+      <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-violet-500/10 blur-3xl" />
+
+      <div className="relative">
+        {/* Card header */}
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <div
+              className={[
+                "flex size-12 shrink-0",
+                "items-center justify-center",
+                "rounded-2xl",
+                status.iconClass,
+              ].join(" ")}
+            >
+              <CircleDollarSign
+                size={23}
+                strokeWidth={1.9}
+              />
+            </div>
+
+            <div className="min-w-0">
+              <h3 className="truncate text-lg font-black tracking-tight text-slate-950 dark:text-white">
+                {title}
+              </h3>
+
+              <p className="mt-1 truncate text-xs font-medium text-slate-500 dark:text-slate-400">
+                {category} budget
+              </p>
+            </div>
+          </div>
+
+          <span
+            className={[
+              "inline-flex shrink-0 items-center",
+              "gap-1.5 rounded-full border",
+              "px-2.5 py-1 text-[11px]",
+              "font-bold",
+              status.badgeClass,
+            ].join(" ")}
+          >
+            <StatusIcon size={13} />
+
+            {status.label}
+          </span>
+        </div>
+
+        {/* Budget amount */}
+        <div className="mt-6">
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
+            Monthly limit
+          </p>
+
+          <p className="mt-2 text-2xl font-black tracking-tight text-slate-950 dark:text-white">
+            {formatCurrency(limit)}
+          </p>
+        </div>
+
+        {/* Progress */}
+        <div className="mt-6">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+              Budget usage
+            </span>
+
+            <span
+              className={[
+                "text-sm font-black",
+                percentage >= 100
+                  ? "text-rose-600 dark:text-rose-400"
+                  : percentage >= 80
+                    ? "text-amber-600 dark:text-amber-400"
+                    : "text-emerald-600 dark:text-emerald-400",
+              ].join(" ")}
+            >
+              {percentage.toFixed(1)}%
+            </span>
+          </div>
+
+          <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
+            <motion.div
+              initial={
+                shouldReduceMotion
+                  ? false
+                  : {
+                      width: 0,
+                    }
+              }
+              animate={{
+                width: `${progressPercentage}%`,
+              }}
+              transition={{
+                duration: 0.7,
+                delay: Math.min(index * 0.05, 0.3),
+                ease: [0.22, 1, 0.36, 1],
+              }}
+              className={[
+                "h-full rounded-full",
+                "bg-gradient-to-r",
+                status.progressClass,
+              ].join(" ")}
+            />
+          </div>
+        </div>
+
+        {/* Breakdown */}
+        <div className="mt-5 grid grid-cols-2 gap-3">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3 dark:border-slate-800 dark:bg-slate-950/30">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">
+              Spent
+            </p>
+
+            <p className="mt-2 truncate text-sm font-black text-rose-600 dark:text-rose-400">
+              {formatCurrency(safeSpent)}
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3 dark:border-slate-800 dark:bg-slate-950/30">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">
+              {remaining >= 0
+                ? "Remaining"
+                : "Exceeded"}
+            </p>
+
+            <p
+              className={[
+                "mt-2 truncate text-sm font-black",
+                remaining >= 0
+                  ? "text-emerald-600 dark:text-emerald-400"
+                  : "text-rose-600 dark:text-rose-400",
+              ].join(" ")}
+            >
+              {formatCurrency(Math.abs(remaining))}
+            </p>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="mt-6 flex items-center gap-3 border-t border-slate-200 pt-5 dark:border-slate-800">
+          <button
+            type="button"
+            onClick={() => onEdit?.(budget)}
+            className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 text-sm font-bold text-blue-600 transition hover:border-blue-500 hover:bg-blue-600 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-400"
+          >
+            <Pencil size={16} />
+
+            Edit
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onDelete?.(budget)}
+            disabled={deleting}
+            className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 text-sm font-bold text-rose-600 transition hover:border-rose-500 hover:bg-rose-600 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-400"
+          >
+            {deleting ? (
+              <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            ) : (
+              <Trash2 size={16} />
+            )}
+
+            Delete
+          </button>
+        </div>
+      </div>
+    </motion.article>
+  );
+}
 
 export default BudgetCard;

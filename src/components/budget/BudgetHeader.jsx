@@ -1,378 +1,61 @@
-import { useState } from "react";
-import { motion } from "framer-motion";
 import {
-  Wallet,
   Plus,
+  Sparkles,
+  WalletCards,
 } from "lucide-react";
 
-import AddBudgetModal from "./AddBudgetModal";
+import Button from "../common/Button";
 
-
-function BudgetHeader() {
-
-  const [open, setOpen] = useState(false);
-
-
+function BudgetHeader({ onAddClick }) {
   return (
-    <>
-
-      <motion.div
-
-        initial={{
-          opacity:0,
-          y:-20,
-        }}
-
-        animate={{
-          opacity:1,
-          y:0,
-        }}
-
-        transition={{
-          duration:0.5,
-        }}
-
-
-        className="
-          relative
-          overflow-hidden
-
-          flex
-
-          flex-col
-
-          gap-6
-
-
-          rounded-3xl
-
-
-          border
-
-          border-slate-200
-
-
-          bg-white
-
-
-          p-8
-
-
-          shadow-xl
-
-          shadow-slate-200/50
-
-
-          backdrop-blur-xl
-
-
-          sm:flex-row
-
-          sm:items-center
-
-          sm:justify-between
-
-
-
-          dark:border-white/10
-
-
-          dark:bg-slate-900/70
-
-
-          dark:shadow-black/30
-        "
-      >
-
-
-
-        {/* Background Glow */}
-
-
-        <div
-          className="
-            absolute
-
-            -right-20
-
-            -top-20
-
-
-            h-48
-
-            w-48
-
-
-            rounded-full
-
-
-            bg-blue-500/20
-
-
-            blur-3xl
-          "
-        />
-
-
-
-        <div
-          className="
-            absolute
-
-            -bottom-20
-
-            -left-20
-
-
-            h-48
-
-            w-48
-
-
-            rounded-full
-
-
-            bg-cyan-500/20
-
-
-            blur-3xl
-          "
-        />
-
-
-
-
-
-
-        {/* Title Section */}
-
-
-        <div className="relative">
-
-
-          <div
-            className="
-              flex
-
-              items-center
-
-              gap-4
-            "
-          >
-
-
-            <div
-              className="
-                flex
-
-                h-14
-
-                w-14
-
-
-                items-center
-
-                justify-center
-
-
-                rounded-2xl
-
-
-                bg-gradient-to-br
-
-                from-blue-500
-
-                to-cyan-500
-
-
-                text-white
-
-
-                shadow-lg
-
-                shadow-blue-500/30
-              "
-            >
-
-              <Wallet size={28}/>
-
-            </div>
-
-
-
-
-
-            <div>
-
-
-              <h1
-
-                className="
-                  text-3xl
-
-                  font-extrabold
-
-
-                  text-slate-900
-
-
-                  sm:text-4xl
-
-
-                  dark:text-white
-                "
-              >
-
-                Budget
-
-
-              </h1>
-
-
-
-
-              <p
-
-                className="
-                  mt-1
-
-
-                  text-slate-600
-
-
-                  dark:text-slate-400
-                "
-              >
-
-                Manage monthly spending limits
-
-
-              </p>
-
-
-
-            </div>
-
-
-
+    <header className="relative overflow-hidden rounded-3xl border border-slate-200/80 bg-white px-5 py-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:px-7 sm:py-7">
+      {/* Decorative background */}
+      <div className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-violet-500/10 blur-3xl" />
+
+      <div className="pointer-events-none absolute -bottom-20 left-1/3 h-48 w-48 rounded-full bg-cyan-500/10 blur-3xl" />
+
+      <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+        {/* Header content */}
+        <div className="flex min-w-0 items-start gap-4">
+          <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl border border-violet-500/20 bg-violet-500/10 text-violet-600 dark:text-violet-400">
+            <WalletCards
+              size={27}
+              strokeWidth={1.9}
+            />
           </div>
 
+          <div className="min-w-0">
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-violet-500/20 bg-violet-500/10 px-3 py-1 text-xs font-bold text-violet-600 dark:text-violet-400">
+                <Sparkles size={13} />
 
+                Smart budgeting
+              </span>
+            </div>
+
+            <h1 className="page-title">
+              Budget Management
+            </h1>
+
+            <p className="page-subtitle">
+              Set spending limits, monitor category usage
+              and stay in control of your monthly finances.
+            </p>
+          </div>
         </div>
 
-
-
-
-
-
-
-        {/* Add Button */}
-
-
-
-        <motion.button
-
-
-          whileHover={{
-            scale:1.05,
-          }}
-
-
-          whileTap={{
-            scale:0.95,
-          }}
-
-
-          onClick={() =>
-            setOpen(true)
-          }
-
-
-          className="
-            relative
-
-            flex
-
-            items-center
-
-            justify-center
-
-
-            gap-2
-
-
-            rounded-2xl
-
-
-            bg-gradient-to-r
-
-            from-blue-600
-
-            to-indigo-600
-
-
-            px-6
-
-            py-3
-
-
-            font-semibold
-
-
-            text-white
-
-
-            shadow-lg
-
-            shadow-blue-500/30
-
-
-            transition-all
-
-
-            hover:from-blue-500
-
-            hover:to-indigo-500
-
-
-            sm:w-auto
-
-            w-full
-          "
+        {/* Add button */}
+        <Button
+          size="lg"
+          leftIcon={Plus}
+          onClick={onAddClick}
+          className="w-full shrink-0 sm:w-auto"
         >
-
-
-          <Plus size={20}/>
-
-
           Add Budget
-
-
-        </motion.button>
-
-
-
-
-      </motion.div>
-
-
-
-
-
-      <AddBudgetModal
-
-        open={open}
-
-        onClose={() =>
-          setOpen(false)
-        }
-
-      />
-
-
-    </>
+        </Button>
+      </div>
+    </header>
   );
 }
-
 
 export default BudgetHeader;

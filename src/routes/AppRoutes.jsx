@@ -21,6 +21,8 @@ import Profile from "../pages/Profile/Profile";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
 import PublicOnlyRoute from "../components/auth/PublicOnlyRoute";
 
+import ErrorBoundary from "../components/common/ErrorBoundary";
+
 function AppRoutes() {
   return (
     <Routes>
@@ -63,8 +65,12 @@ function AppRoutes() {
           />
 
           <Route
-            path="analytics"
-            element={<Analytics />}
+            path="/analytics"
+            element={
+              <ErrorBoundary>
+                <Analytics />
+              </ErrorBoundary>
+            }
           />
 
           {/* <Route

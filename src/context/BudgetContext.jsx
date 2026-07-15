@@ -398,11 +398,18 @@ function BudgetProvider({ children }) {
   );
 
   return (
-    <BudgetContext.Provider
-      value={value}
-    >
-      {children}
-    </BudgetContext.Provider>
+<BudgetContext.Provider
+  value={{
+    budgets,
+    addBudget,
+    updateBudget,
+    deleteBudget,
+    loading,
+    error,
+  }}
+>
+  {children}
+</BudgetContext.Provider>
   );
 }
 

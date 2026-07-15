@@ -1,247 +1,139 @@
-import {
-  useMemo,
-  useState,
-} from "react";
+import { useState } from "react";
 
 import GoalHeader from "../../components/goals/GoalHeader";
 import GoalStats from "../../components/goals/GoalStats";
+import GoalProgress from "../../components/goals/GoalProgress";
+import GoalDeadlineAlerts from "../../components/goals/GoalDeadlineAlerts";
+import GoalList from "../../components/goals/GoalList";
 import GoalToolbar from "../../components/goals/GoalToolbar";
-import GoalGrid from "../../components/goals/GoalGrid";
 import GoalModal from "../../components/goals/GoalModal";
 import EditGoalModal from "../../components/goals/EditGoalModal";
 
-import useGoal from "../../hooks/useGoal";
-
-function getProgress(goal) {
-  const target = Number(
-    goal.targetAmount || 0
-  );
-
-  const saved = Number(
-    goal.savedAmount || 0
-  );
-
-  if (target <= 0) {
-    return 0;
-  }
-
-  return Math.min(
-    Math.round((saved / target) * 100),
-    100
-  );
-}
+import SectionReveal from "../../components/common/SectionReveal";
 
 function Goals() {
-  const {
-    goals,
-    loading,
-    error,
-  } = useGoal();
+  /* =======================================================
+     FILTER STATE
+  ======================================================= */
 
-  const [createOpen, setCreateOpen] =
-    useState(false);
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("all");
+  const [sort, setSort] = useState("deadline-soon");
 
-  const [editingGoal, setEditingGoal] =
-    useState(null);
+  /* =======================================================
+     MODAL STATE
+  ======================================================= */
 
-  const [search, setSearch] =
-    useState("");
+  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [editingGoal, setEditingGoal] = useState(null);
 
-  const [status, setStatus] =
-    useState("all");
+  /* =======================================================
+     MODAL HANDLERS
+  ======================================================= */
 
-  const [sort, setSort] =
-    useState("newest");
+  const handleOpenAddModal = () => {
+    setAddModalOpen(true);
+  };
 
-  const filteredGoals = useMemo(() => {
-    const searchValue =
-      search.trim().toLowerCase();
+  const handleCloseAddModal = () => {
+    setAddModalOpen(false);
+  };
 
-    const nextGoals = goals.filter(
-      (goal) => {
-        const goalStatus =
-          String(
-            goal.status || "active"
-          ).toLowerCase();
+  const handleOpenEditModal = (goal) => {
+    if (!goal) {
+      return;
+    }
 
-        const matchesSearch =
-          !searchValue ||
-          goal.title
-            ?.toLowerCase()
-            .includes(searchValue);
+    setEditingGoal(goal);
+  };
 
-        const matchesStatus =
-          status === "all" ||
-          goalStatus === status;
+  const handleCloseEditModal = () => {
+    setEditingGoal(null);
+  };
 
-        return (
-          matchesSearch &&
-          matchesStatus
-        );
-      }
-    );
+  /* =======================================================
+     FILTER RESET
+  ======================================================= */
 
-    return [...nextGoals].sort(
-      (firstGoal, secondGoal) => {
-        if (sort === "oldest") {
-          return (
-            new Date(
-              firstGoal.createdAt || 0
-            ) -
-            new Date(
-              secondGoal.createdAt || 0
-            )
-          );
-        }
-
-        if (sort === "progress-high") {
-          return (
-            getProgress(secondGoal) -
-            getProgress(firstGoal)
-          );
-        }
-
-        if (sort === "progress-low") {
-          return (
-            getProgress(firstGoal) -
-            getProgress(secondGoal)
-          );
-        }
-
-        if (sort === "target-high") {
-          return (
-            Number(
-              secondGoal.targetAmount || 0
-            ) -
-            Number(
-              firstGoal.targetAmount || 0
-            )
-          );
-        }
-
-        if (sort === "deadline") {
-          const firstDeadline =
-            firstGoal.deadline
-              ? new Date(
-                  firstGoal.deadline
-                ).getTime()
-              : Number.MAX_SAFE_INTEGER;
-
-          const secondDeadline =
-            secondGoal.deadline
-              ? new Date(
-                  secondGoal.deadline
-                ).getTime()
-              : Number.MAX_SAFE_INTEGER;
-
-          return (
-            firstDeadline -
-            secondDeadline
-          );
-        }
-
-        return (
-          new Date(
-            secondGoal.createdAt || 0
-          ) -
-          new Date(
-            firstGoal.createdAt || 0
-          )
-        );
-      }
-    );
-  }, [
-    goals,
-    search,
-    status,
-    sort,
-  ]);
-
-  const hasFilters =
-    Boolean(search.trim()) ||
-    status !== "all";
+  const handleResetFilters = () => {
+    setSearch("");
+    setStatus("all");
+    setSort("deadline-soon");
+  };
 
   return (
-    <div className="space-y-6">
-      <GoalHeader
-        onAddGoal={() =>
-          setCreateOpen(true)
-        }
-      />
+    <section className="min-w-0 space-y-6">
+      {/* Page header */}
+      <SectionReveal>
+        <GoalHeader onAddClick={handleOpenAddModal} />
+      </SectionReveal>
 
-      <GoalStats goals={goals} />
+      {/* Goal statistics */}
+      <SectionReveal delay={0.05}>
+        <GoalStats />
+      </SectionReveal>
 
-      <GoalToolbar
-        search={search}
-        onSearchChange={setSearch}
-        status={status}
-        onStatusChange={setStatus}
-        sort={sort}
-        onSortChange={setSort}
-      />
+      {/* Overall goal progress */}
+      <SectionReveal delay={0.08}>
+        <GoalProgress />
+      </SectionReveal>
 
-      {loading && (
-        <div
-          className="
-            rounded-2xl
-            border
-            border-slate-200
-            bg-white
-            p-10
-            text-center
-            text-slate-500
-            dark:border-slate-800
-            dark:bg-slate-900
-            dark:text-slate-400
-          "
+      {/* Deadline alerts */}
+      <SectionReveal delay={0.1}>
+        <GoalDeadlineAlerts />
+      </SectionReveal>
+
+      {/* Goals and toolbar */}
+      <div className="grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_260px]">
+        {/* Goal list */}
+        <SectionReveal
+          delay={0.12}
+          className="min-w-0"
         >
-          Loading your goals...
-        </div>
-      )}
+          <GoalList
+            search={search}
+            status={status}
+            sort={sort}
+            onEdit={handleOpenEditModal}
+            onAdd={handleOpenAddModal}
+          />
+        </SectionReveal>
 
-      {!loading && error && (
-        <div
-          className="
-            rounded-2xl
-            border
-            border-red-200
-            bg-red-50
-            p-5
-            text-red-600
-            dark:border-red-900
-            dark:bg-red-950/30
-          "
+        {/* Goal controls */}
+        <SectionReveal
+          delay={0.16}
+          direction="left"
+          className="min-w-0 xl:sticky xl:top-24"
         >
-          {error}
-        </div>
-      )}
+          <GoalToolbar
+            search={search}
+            setSearch={setSearch}
+            status={status}
+            setStatus={setStatus}
+            sort={sort}
+            setSort={setSort}
+            onReset={handleResetFilters}
+          />
+        </SectionReveal>
+      </div>
 
-      {!loading && !error && (
-        <GoalGrid
-          goals={filteredGoals}
-          hasFilters={hasFilters}
-          onCreateGoal={() =>
-            setCreateOpen(true)
-          }
-          onEditGoal={setEditingGoal}
+      {/* Add goal modal */}
+      {addModalOpen && (
+        <GoalModal
+          open={addModalOpen}
+          onClose={handleCloseAddModal}
         />
       )}
 
-      <GoalModal
-        open={createOpen}
-        onClose={() =>
-          setCreateOpen(false)
-        }
-      />
-
-      <EditGoalModal
-        goal={editingGoal}
-        open={Boolean(editingGoal)}
-        onClose={() =>
-          setEditingGoal(null)
-        }
-      />
-    </div>
+      {/* Edit goal modal */}
+      {editingGoal && (
+        <EditGoalModal
+          goal={editingGoal}
+          open={Boolean(editingGoal)}
+          onClose={handleCloseEditModal}
+        />
+      )}
+    </section>
   );
 }
 

@@ -315,7 +315,7 @@ function ProfileDropdown({
               <ChevronRight size={17} />
             </button>
 
-            <button
+            {/* <button
               type="button"
               onClick={() =>
                 goToPage("/settings")
@@ -342,7 +342,7 @@ function ProfileDropdown({
               </span>
 
               <ChevronRight size={17} />
-            </button>
+            </button> */}
           </div>
 
           {logoutError && (
