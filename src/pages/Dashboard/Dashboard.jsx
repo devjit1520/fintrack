@@ -141,7 +141,7 @@ function Dashboard() {
           pointer-events-none
           fixed
           right-0
-          top-20
+          top-2 0
           -z-10
           h-96
           w-96
