@@ -1,147 +1,380 @@
-import { useState, useRef  } from "react";
-import DashboardHeader from "../../components/dashboard/DashboardHeader";
-// import { dashboardStats } from "../../data/dashboardData";
-import StatsCard from "../../components/dashboard/StatsCard";
-import QuickActions from "../../components/dashboard/QuickActions";
-import AddTransactionForm from "../../components/forms/AddTransactionForm";
-// import AddTransactionForm from "../../components/forms/AddTransactionForm";
-import TransactionTable from "../../components/transactions/TransactionTable";
-import AnalyticsCards from "../../components/dashboard/AnalyticsCards";
-import ExpensePieChart from "../../components/charts/ExpensePieChart";
-import IncomeExpenseChart from "../../components/charts/IncomeExpenseChart";
-import MonthlyTrendChart from "../../components/charts/MonthlyTrendChart";
-import BudgetProgress from "../../components/dashboard/BudgetProgress";
-import SavingsGoal from "../../components/dashboard/SavingsGoal";
-import RecentActivity from "../../components/dashboard/RecentActivity";
-import FinancialInsights from "../../components/dashboard/FinancialInsights";
+import { useState } from "react";
+import {
+  Activity,
+  BarChart3,
+  CreditCard,
+  Target,
+} from "lucide-react";
+
 import WelcomeBanner from "../../components/dashboard/WelcomeBanner";
+import PremiumStats from "../../components/dashboard/PremiumStats";
+import AnalyticsCards from "../../components/dashboard/AnalyticsCards";
+import QuickActions from "../../components/dashboard/QuickActions";
+import RecentTransactions from "../../components/dashboard/RecentTransactions";
+import ExpenseByCategory from "../../components/dashboard/ExpenseByCategory";
+import BudgetProgress from "../../components/dashboard/BudgetProgress";
+import FinancialInsights from "../../components/dashboard/FinancialInsights";
 import FinanceTips from "../../components/dashboard/FinanceTips";
 import Achievements from "../../components/dashboard/Achievements";
-import EditTransactionModal from "../../components/transactions/EditTransactionModal";
+import RecentActivity from "../../components/dashboard/RecentActivity";
+
+import MonthlyTrendChart from "../../components/analytics/MonthlyTrendChart";
+
+import SavingsGoal from "../../components/goals/SavingsGoal";
 import GoalModal from "../../components/goals/GoalModal";
-import useFinance from "../../hooks/useFinance";
-import GoalProgress from "../../components/goals/GoalProgress";
-import RecentTransactions from "../../components/dashboard/RecentTransactions";
-import PremiumStats from "../../components/dashboard/PremiumStats";
 
-function Dashboard() {
-  const [editing, setEditing] = useState(null);
-  const formRef = useRef(null);
-  const [defaultType, setDefaultType] = useState("expense");
-  const [goalOpen, setGoalOpen] = useState(false);
+import AddTransactionForm from "../../components/transactions/AddTransactionForm";
+import EditTransactionModal from "../../components/transactions/EditTransactionModal";
+import TransactionTable from "../../components/transactions/TransactionTable";
 
-const { exportCSV } = useFinance();
-
-
-const [goals, setGoals] = useState(
-  JSON.parse(localStorage.getItem("goals")) || []
-);
-  
+function SectionHeader({
+  icon: Icon,
+  title,
+  description,
+}) {
   return (
-    <section className="space-y-8">
-
-        <WelcomeBanner />
-
-
-      {/* <DashboardHeader /> */}
-
-      {/* Stats */}
-      <PremiumStats />
-
-      {/* <GoalProgress /> */}
-
-      <GoalProgress />
-
-      {/* Analytics */}
-      <AnalyticsCards />
-
-
-      {/* Quick Actions */}
-     <QuickActions
-        setDefaultType={setDefaultType}
-        openGoal={() => setGoalOpen(true)}
-      />
-
-      {/* Main Content */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div ref={formRef}>
-          <AddTransactionForm defaultType={defaultType} />
+    <div
+      className="
+        flex
+        flex-col
+        gap-3
+        sm:flex-row
+        sm:items-center
+        sm:justify-between
+      "
+    >
+      <div className="flex items-start gap-3">
+        <div
+          className="
+            flex
+            h-11
+            w-11
+            shrink-0
+            items-center
+            justify-center
+            rounded-2xl
+            border
+            border-cyan-500/20
+            bg-cyan-500/10
+            text-cyan-500
+          "
+        >
+          <Icon size={21} />
         </div>
 
-        <div className="space-y-6 lg:col-span-2">
-           <RecentTransactions />
-          <TransactionTable
-            onEdit={setEditing}
+        <div>
+          <h2
+            className="
+              text-xl
+              font-bold
+              text-slate-900
+              dark:text-white
+              md:text-2xl
+            "
+          >
+            {title}
+          </h2>
+
+          <p
+            className="
+              mt-1
+              text-sm
+              text-slate-500
+              dark:text-slate-400
+            "
+          >
+            {description}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Dashboard() {
+  const [
+    editingTransaction,
+    setEditingTransaction,
+  ] = useState(null);
+
+  const [
+    transactionModalOpen,
+    setTransactionModalOpen,
+  ] = useState(false);
+
+  const [defaultType, setDefaultType] =
+    useState("expense");
+
+  const [
+    goalModalOpen,
+    setGoalModalOpen,
+  ] = useState(false);
+
+  const openTransactionModal = (
+    type = "expense"
+  ) => {
+    setDefaultType(
+      type === "income"
+        ? "income"
+        : "expense"
+    );
+
+    setTransactionModalOpen(true);
+  };
+
+  const closeTransactionModal = () => {
+    setTransactionModalOpen(false);
+  };
+
+  return (
+    <section
+      className="
+        relative
+        space-y-10
+        pb-10
+      "
+    >
+      {/* Background decorations */}
+
+      <div
+        className="
+          pointer-events-none
+          fixed
+          right-0
+          top-20
+          -z-10
+          h-96
+          w-96
+          rounded-full
+          bg-cyan-500/5
+          blur-[140px]
+        "
+      />
+
+      <div
+        className="
+          pointer-events-none
+          fixed
+          bottom-0
+          left-72
+          -z-10
+          h-96
+          w-96
+          rounded-full
+          bg-violet-500/5
+          blur-[140px]
+        "
+      />
+
+      {/* Welcome area */}
+
+      <WelcomeBanner
+        onAddIncome={() =>
+          openTransactionModal("income")
+        }
+        onAddExpense={() =>
+          openTransactionModal("expense")
+        }
+      />
+
+      {/* Main financial statistics */}
+
+      <PremiumStats />
+
+      {/* Additional analytics cards */}
+
+      <AnalyticsCards />
+
+      {/* Quick actions */}
+
+      <div className="space-y-5">
+        <SectionHeader
+          icon={CreditCard}
+          title="Quick Actions"
+          description="Manage your most important financial actions."
+        />
+
+        <QuickActions
+          openTransaction={
+            openTransactionModal
+          }
+          openGoal={() =>
+            setGoalModalOpen(true)
+          }
+        />
+      </div>
+
+      {/* Main analytics area */}
+
+      <div className="space-y-5">
+        <SectionHeader
+          icon={BarChart3}
+          title="Financial Analytics"
+          description="Understand how your income and expenses are changing."
+        />
+
+        <div
+          className="
+            grid
+            gap-6
+            2xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.35fr)]
+          "
+        >
+          <ExpenseByCategory />
+          <MonthlyTrendChart />
+        </div>
+      </div>
+
+      {/* Transactions overview */}
+
+      <div className="space-y-5">
+        <SectionHeader
+          icon={CreditCard}
+          title="Transaction Overview"
+          description="Review recent records and manage your complete transaction history."
+        />
+
+        <div
+          className="
+            grid
+            gap-6
+            2xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.4fr)]
+          "
+        >
+          <RecentTransactions />
+
+          <div
+            className="
+              min-w-0
+              overflow-hidden
+              rounded-3xl
+              border
+              border-slate-200/80
+              bg-white/90
+              shadow-sm
+              backdrop-blur-xl
+              dark:border-slate-800
+              dark:bg-slate-900/80
+            "
+          >
+            <TransactionTable
+              onEdit={
+                setEditingTransaction
+              }
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Budget and goals */}
+
+      <div className="space-y-5">
+        <SectionHeader
+          icon={Target}
+          title="Budget & Saving Goals"
+          description="Monitor spending limits and track progress toward your financial targets."
+        />
+
+        <div
+          className="
+            grid
+            items-start
+            gap-6
+            2xl:grid-cols-2
+          "
+        >
+          <BudgetProgress />
+
+          <SavingsGoal
+            onAddSavings={(goal) => {
+              console.log(
+                "Add savings:",
+                goal
+              );
+            }}
+            onEdit={(goal) => {
+              console.log(
+                "Edit goal:",
+                goal
+              );
+            }}
+            onDelete={(goal) => {
+              console.log(
+                "Delete goal:",
+                goal
+              );
+            }}
           />
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <ExpensePieChart />
-        <IncomeExpenseChart />
+      {/* Insights and activity */}
 
-        {/* <div className="rounded-3xl border border-slate-800 bg-slate-900 p-6">
-          <h2 className="text-xl font-bold">
-            Income vs Expense
-          </h2>
-        </div> */}
-      </div>
-      <div className="mt-6">
-        <MonthlyTrendChart />
-      </div>
+      <div className="space-y-5">
+        <SectionHeader
+          icon={Activity}
+          title="Insights & Activity"
+          description="View recent actions and personalized financial recommendations."
+        />
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <BudgetProgress />
-        <SavingsGoal />
-      </div>
-
-      <div className="mt-6">
-
-        <RecentActivity />
-
+        <div
+          className="
+            grid
+            items-start
+            gap-6
+            2xl:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]
+          "
+        >
+          <RecentActivity />
+          <FinancialInsights />
+        </div>
       </div>
 
-      <div className="mt-6">
-        
-        {/* Financial Insights */}
-        <FinancialInsights />
+      {/* Tips and achievements */}
 
+      <div
+        className="
+          grid
+          items-start
+          gap-6
+          xl:grid-cols-2
+        "
+      >
+        <FinanceTips />
+        <Achievements />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-          <FinanceTips />
-          <Achievements />
-      </div>
+      {/* Add transaction modal */}
 
-      {/* <GoalModal
-        open={goalOpen}
-        onClose={() => setGoalOpen(false)}
-      /> */}
+      <AddTransactionForm
+        open={transactionModalOpen}
+        onClose={
+          closeTransactionModal
+        }
+        defaultType={defaultType}
+      />
+
+      {/* Add goal modal */}
 
       <GoalModal
-  open={goalOpen}
-  onClose={() => setGoalOpen(false)}
-  onGoalAdded={(newGoal)=>{
+        open={goalModalOpen}
+        onClose={() =>
+          setGoalModalOpen(false)
+        }
+      />
 
-    setGoals((prev)=>[
-      ...prev,
-      newGoal
-    ]);
+      {/* Edit transaction modal */}
 
-  }}
-/>
-
-
-
-          {/*  */}
-
-          {editing && (
-            <EditTransactionModal
-              transaction={editing}
-              onClose={() => setEditing(null)}
-            />
-          )}
-
+      {editingTransaction && (
+        <EditTransactionModal
+          transaction={
+            editingTransaction
+          }
+          onClose={() =>
+            setEditingTransaction(null)
+          }
+        />
+      )}
     </section>
   );
 }

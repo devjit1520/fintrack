@@ -1,118 +1,341 @@
-import { motion } from "framer-motion";
 import {
   Download,
   Target,
+  TrendingDown,
+  TrendingUp,
 } from "lucide-react";
 
-import Card from "../common/Card";
+import {
+  useNavigate,
+} from "react-router-dom";
+
+import {
+  useEffect,
+  useState,
+} from "react";
+
+import { motion } from "framer-motion";
+
 import useFinance from "../../hooks/useFinance";
 
-function QuickActions({ openGoal }) {
-  const { exportCSV } = useFinance();
+import {
+  exportTransactionsToCsv,
+} from "../../utils/exportTransactions";
 
-  const actions = [
-    {
-      title: "Set Savings Goal",
-      description: "Create or update your financial goal",
-      icon: Target,
-      color:
-        "from-purple-500 to-fuchsia-500",
-      bg:
-        "bg-purple-100 dark:bg-purple-500/20",
-      iconColor:
-        "text-purple-600 dark:text-purple-400",
-      onClick: openGoal,
-    },
-    {
-      title: "Export Transactions",
-      description: "Download your finance data as CSV",
-      icon: Download,
-      color:
-        "from-cyan-500 to-blue-600",
-      bg:
-        "bg-cyan-100 dark:bg-cyan-500/20",
-      iconColor:
-        "text-cyan-600 dark:text-cyan-400",
-      onClick: exportCSV,
-    },
-  ];
+function ActionCard({
+  title,
+  subtitle,
+  icon: Icon,
+  iconBg,
+  border,
+  hover,
+  onClick,
+  disabled,
+  children,
+}) {
+  return (
+    <motion.button
+      whileHover={{
+        y: -6,
+        scale: 1.02,
+      }}
+      whileTap={{
+        scale: 0.98,
+      }}
+      disabled={disabled}
+      onClick={onClick}
+      className={`
+        group
+        relative
+        overflow-hidden
+        rounded-3xl
+        border
+        bg-white
+        dark:bg-slate-900
+
+        ${border}
+
+        p-6
+
+        text-left
+
+        transition-all
+
+        shadow-sm
+
+        hover:shadow-xl
+
+        disabled:opacity-50
+        disabled:cursor-not-allowed
+      `}
+    >
+      <div
+        className={`
+          absolute
+          -right-10
+          -top-10
+          h-32
+          w-32
+          rounded-full
+          blur-3xl
+          opacity-0
+          transition-all
+          group-hover:opacity-100
+          ${hover}
+        `}
+      />
+
+      <div className="relative">
+
+        <div
+          className={`
+            mb-5
+            flex
+            h-16
+            w-16
+            items-center
+            justify-center
+            rounded-2xl
+            ${iconBg}
+          `}
+        >
+          {children || <Icon size={30} />}
+        </div>
+
+        <h3
+          className="
+            text-lg
+            font-bold
+            text-slate-900
+            dark:text-white
+          "
+        >
+          {title}
+        </h3>
+
+        <p
+          className="
+            mt-2
+            text-sm
+            leading-6
+            text-slate-500
+            dark:text-slate-400
+          "
+        >
+          {subtitle}
+        </p>
+
+      </div>
+    </motion.button>
+  );
+}
+
+function QuickActions({
+  openTransaction,
+  openGoal,
+}) {
+  const navigate = useNavigate();
+
+  const {
+    transactions = [],
+    loading,
+  } = useFinance();
+
+  const [
+    exporting,
+    setExporting,
+  ] = useState(false);
+
+  const [
+    message,
+    setMessage,
+  ] = useState("");
+
+  const [
+    messageType,
+    setMessageType,
+  ] = useState("success");
+
+  useEffect(() => {
+    if (!message) return;
+
+    const timer = setTimeout(() => {
+      setMessage("");
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [message]);
+
+  const handleGoalClick = () => {
+    if (openGoal) {
+      openGoal();
+      return;
+    }
+
+    navigate("/goals");
+  };
+
+  const handleExport = () => {
+    try {
+      setExporting(true);
+
+      const result =
+        exportTransactionsToCsv(
+          transactions
+        );
+
+      if (!result.success) {
+        setMessageType("error");
+        setMessage(result.error);
+        return;
+      }
+
+      setMessageType("success");
+
+      setMessage(
+        `${transactions.length} transaction${
+          transactions.length > 1
+            ? "s"
+            : ""
+        } exported successfully`
+      );
+    } catch (err) {
+      setMessageType("error");
+      setMessage(
+        err.message ||
+          "Export failed"
+      );
+    } finally {
+      setExporting(false);
+    }
+  };
 
   return (
-    <div className="grid gap-6 md:grid-cols-2">
-      {actions.map((action, index) => {
-        const Icon = action.icon;
+    <section className="space-y-5">
 
-        return (
-          <motion.div
-            key={action.title}
-            initial={{
-              opacity: 0,
-              y: 25,
-            }}
-            animate={{
-              opacity: 1,
-              y: 0,
-            }}
-            transition={{
-              delay: index * 0.1,
-            }}
-            whileHover={{
-              y: -6,
-            }}
-          >
-            <Card
+      <div
+        className="
+          grid
+          gap-6
+          md:grid-cols-2
+          xl:grid-cols-4
+        "
+      >
+
+        <ActionCard
+          title="Add Income"
+          subtitle="Record new income"
+          icon={TrendingUp}
+          iconBg="bg-emerald-500/15 text-emerald-500"
+          border="border-emerald-200 dark:border-emerald-900"
+          hover="bg-emerald-500/20"
+          onClick={() =>
+            openTransaction?.("income")
+          }
+        />
+
+        <ActionCard
+          title="Add Expense"
+          subtitle="Track your spending"
+          icon={TrendingDown}
+          iconBg="bg-red-500/15 text-red-500"
+          border="border-red-200 dark:border-red-900"
+          hover="bg-red-500/20"
+          onClick={() =>
+            openTransaction?.("expense")
+          }
+        />
+
+        <ActionCard
+          title="Savings Goal"
+          subtitle="Manage financial goals"
+          icon={Target}
+          iconBg="bg-violet-500/15 text-violet-500"
+          border="border-violet-200 dark:border-violet-900"
+          hover="bg-violet-500/20"
+          onClick={handleGoalClick}
+        />
+
+        <ActionCard
+          title={
+            exporting
+              ? "Exporting..."
+              : "Export CSV"
+          }
+          subtitle={
+            transactions.length
+              ? `${transactions.length} transactions`
+              : "No transactions"
+          }
+          icon={Download}
+          iconBg="bg-cyan-500/15 text-cyan-500"
+          border="border-cyan-200 dark:border-cyan-900"
+          hover="bg-cyan-500/20"
+          onClick={handleExport}
+          disabled={
+            exporting ||
+            loading ||
+            transactions.length === 0
+          }
+        >
+          {exporting ? (
+            <span
               className="
-                relative
-                overflow-hidden
-                cursor-pointer
-
-                bg-white
-                dark:bg-slate-900
-
-                border-slate-200
-                dark:border-slate-800
+                h-8
+                w-8
+                animate-spin
+                rounded-full
+                border-2
+                border-cyan-500
+                border-t-transparent
               "
-            >
-              {/* Glow */}
-              <div
-                className={`absolute -right-8 -top-8 h-28 w-28 rounded-full bg-gradient-to-br ${action.color} opacity-10 blur-3xl`}
-              />
+            />
+          ) : (
+            <Download size={30} />
+          )}
+        </ActionCard>
 
-              <button
-                onClick={action.onClick}
-                className="relative flex w-full items-center justify-between"
-              >
-                <div className="flex items-center gap-5">
+      </div>
 
-                  <div
-                    className={`rounded-2xl p-4 ${action.bg}`}
-                  >
-                    <Icon
-                      size={28}
-                      className={action.iconColor}
-                    />
-                  </div>
+      {message && (
+        <motion.div
+          initial={{
+            opacity: 0,
+            y: 10,
+          }}
+          animate={{
+            opacity: 1,
+            y: 0,
+          }}
+          className={`
+            rounded-2xl
+            border
+            px-5
+            py-4
+            text-sm
+            font-medium
 
-                  <div className="text-left">
+            ${
+              messageType === "success"
+                ? `
+                border-emerald-500/20
+                bg-emerald-500/10
+                text-emerald-600
+                dark:text-emerald-400
+                `
+                : `
+                border-red-500/20
+                bg-red-500/10
+                text-red-500
+                `
+            }
+          `}
+        >
+          {message}
+        </motion.div>
+      )}
 
-                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                      {action.title}
-                    </h3>
-
-                    <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-                      {action.description}
-                    </p>
-
-                  </div>
-
-                </div>
-
-              </button>
-            </Card>
-          </motion.div>
-        );
-      })}
-    </div>
+    </section>
   );
 }
 

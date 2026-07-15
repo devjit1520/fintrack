@@ -1,6 +1,7 @@
 import {
   useEffect,
   useRef,
+  useState,
 } from "react";
 
 import {
@@ -22,24 +23,39 @@ import {
 } from "react-router-dom";
 
 import useProfile from "../../hooks/useProfile";
+import useAuth from "../../hooks/useAuth";
 
 function ProfileDropdown({
   open,
   onClose,
 }) {
   const dropdownRef = useRef(null);
-
   const navigate = useNavigate();
 
   const { profile } = useProfile();
 
-  const fallbackAvatar =
-    `https://ui-avatars.com/api/?name=${encodeURIComponent(
-      profile.name || "FinTrack User"
-    )}&background=06b6d4&color=ffffff&size=128`;
+  const {
+    user,
+    logout,
+  } = useAuth();
+
+  const [loggingOut, setLoggingOut] =
+    useState(false);
+
+  const [logoutError, setLogoutError] =
+    useState("");
+
+  const fallbackName =
+    profile?.name ||
+    user?.user_metadata?.full_name ||
+    user?.email?.split("@")[0] ||
+    "FinTrack User";
 
   const avatarSource =
-    profile.avatar || fallbackAvatar;
+    profile?.avatar ||
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(
+      fallbackName
+    )}&background=06b6d4&color=ffffff&size=128`;
 
   useEffect(() => {
     function handleOutsideClick(event) {
@@ -82,9 +98,57 @@ function ProfileDropdown({
     };
   }, [onClose]);
 
+  useEffect(() => {
+    if (!open) {
+      setLogoutError("");
+    }
+  }, [open]);
+
   const goToPage = (path) => {
     navigate(path);
     onClose();
+  };
+
+  const handleLogout = async () => {
+    try {
+      setLoggingOut(true);
+      setLogoutError("");
+
+      const result = await logout();
+
+      if (!result.success) {
+        setLogoutError(
+          result.error ||
+            "Unable to sign out."
+        );
+
+        return;
+      }
+
+      /*
+       * Remove only local user-interface
+       * caches here.
+       *
+       * Later, finance records will move
+       * to Supabase and should not depend
+       * on shared localStorage.
+       */
+      sessionStorage.removeItem(
+        "fintrack-session-recorded"
+      );
+
+      onClose();
+
+      navigate("/login", {
+        replace: true,
+        state: {
+          message:
+            "You have signed out successfully.",
+        },
+      });
+    } finally {
+      setLoggingOut(false);
+    }
   };
 
   return (
@@ -138,7 +202,7 @@ function ProfileDropdown({
               <div className="relative">
                 <img
                   src={avatarSource}
-                  alt={profile.name}
+                  alt={fallbackName}
                   className="
                     h-14
                     w-14
@@ -174,7 +238,7 @@ function ProfileDropdown({
                     dark:text-white
                   "
                 >
-                  {profile.name}
+                  {fallbackName}
                 </h3>
 
                 <p
@@ -185,7 +249,8 @@ function ProfileDropdown({
                     dark:text-slate-400
                   "
                 >
-                  {profile.role}
+                  {profile?.role ||
+                    "FinTrack Member"}
                 </p>
               </div>
             </div>
@@ -203,17 +268,20 @@ function ProfileDropdown({
                 <Mail size={14} />
 
                 <span className="truncate">
-                  {profile.email}
+                  {profile?.email ||
+                    user?.email}
                 </span>
               </p>
 
-              <p className="flex items-center gap-2">
-                <MapPin size={14} />
+              {profile?.location && (
+                <p className="flex items-center gap-2">
+                  <MapPin size={14} />
 
-                <span className="truncate">
-                  {profile.location}
-                </span>
-              </p>
+                  <span className="truncate">
+                    {profile.location}
+                  </span>
+                </p>
+              )}
             </div>
           </div>
 
@@ -239,13 +307,7 @@ function ProfileDropdown({
                 dark:hover:bg-slate-800
               "
             >
-              <span
-                className="
-                  flex
-                  items-center
-                  gap-3
-                "
-              >
+              <span className="flex items-center gap-3">
                 <UserRound size={18} />
                 My Profile
               </span>
@@ -274,13 +336,7 @@ function ProfileDropdown({
                 dark:hover:bg-slate-800
               "
             >
-              <span
-                className="
-                  flex
-                  items-center
-                  gap-3
-                "
-              >
+              <span className="flex items-center gap-3">
                 <Settings size={18} />
                 Settings
               </span>
@@ -288,6 +344,27 @@ function ProfileDropdown({
               <ChevronRight size={17} />
             </button>
           </div>
+
+          {logoutError && (
+            <div
+              className="
+                mx-3
+                mb-2
+                rounded-xl
+                border
+                border-red-200
+                bg-red-50
+                px-3
+                py-2
+                text-xs
+                text-red-600
+                dark:border-red-900
+                dark:bg-red-950/30
+              "
+            >
+              {logoutError}
+            </div>
+          )}
 
           <div
             className="
@@ -299,27 +376,47 @@ function ProfileDropdown({
           >
             <button
               type="button"
-              onClick={() => {
-                console.log("Logout clicked");
-                onClose();
-              }}
+              onClick={handleLogout}
+              disabled={loggingOut}
               className="
                 flex
                 w-full
                 items-center
+                justify-center
                 gap-3
                 rounded-xl
                 px-4
                 py-3
-                text-left
                 text-red-600
                 transition
                 hover:bg-red-50
+                disabled:cursor-not-allowed
+                disabled:opacity-60
                 dark:hover:bg-red-950/30
               "
             >
-              <LogOut size={18} />
-              Logout
+              {loggingOut ? (
+                <>
+                  <span
+                    className="
+                      h-4
+                      w-4
+                      animate-spin
+                      rounded-full
+                      border-2
+                      border-red-500
+                      border-t-transparent
+                    "
+                  />
+
+                  Signing out...
+                </>
+              ) : (
+                <>
+                  <LogOut size={18} />
+                  Sign Out
+                </>
+              )}
             </button>
           </div>
         </motion.div>

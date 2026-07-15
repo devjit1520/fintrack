@@ -1,558 +1,283 @@
-import { motion } from "framer-motion";
-
-import Card from "../common/Card";
-import useFinance from "../../hooks/useFinance";
-
+import { useMemo } from "react";
 
 import {
-  ResponsiveContainer,
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
-  Tooltip,
   CartesianGrid,
-  Legend,
+  Tooltip,
+  ResponsiveContainer,
 } from "recharts";
 
+import {
+  TrendingUp,
+} from "lucide-react";
 
+import useFinance from "../../hooks/useFinance";
+
+function formatCurrency(value) {
+  return new Intl.NumberFormat(
+    "en-IN",
+    {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0,
+    }
+  ).format(Number(value || 0));
+}
+
+const months = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+
+function CustomTooltip({
+  active,
+  payload,
+  label,
+}) {
+  if (
+    !active ||
+    !payload ||
+    !payload.length
+  )
+    return null;
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xl dark:border-slate-700 dark:bg-slate-900">
+
+      <h4 className="font-bold">
+        {label}
+      </h4>
+
+      <p className="mt-2 text-green-500">
+        Income :
+        {formatCurrency(
+          payload[0].value
+        )}
+      </p>
+
+      <p className="text-red-500">
+        Expense :
+        {formatCurrency(
+          payload[1].value
+        )}
+      </p>
+
+    </div>
+  );
+}
 
 function MonthlyTrendChart() {
 
-
   const {
-    transactions = [],
+    transactions=[],
+    loading,
   } = useFinance();
 
+  const data = useMemo(()=>{
 
-
-
-  const months = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
-  ];
-
-
-
-
-
-
-  const chartData = months.map(
-    (month,index)=>{
-
-
-      const income =
-        transactions
-          .filter((t)=>{
-
-            const d =
-              new Date(t.date);
-
-
-            return (
-              d.getMonth() === index &&
-              t.type === "income"
-            );
-
-          })
-          .reduce(
-            (sum,t)=>
-              sum + Number(t.amount || 0),
-            0
-          );
-
-
-
-
-
-      const expense =
-        transactions
-          .filter((t)=>{
-
-
-            const d =
-              new Date(t.date);
-
-
-            return (
-              d.getMonth() === index &&
-              t.type === "expense"
-            );
-
-
-          })
-          .reduce(
-            (sum,t)=>
-              sum + Number(t.amount || 0),
-            0
-          );
-
-
-
-
-
-      return {
+    const monthly =
+      months.map((month)=>({
 
         month,
 
-        income,
+        income:0,
 
-        expense,
+        expense:0,
 
-      };
+      }));
 
+    transactions.forEach((t)=>{
 
-    }
+      const date =
+        new Date(
+          t.date
+        );
 
-  );
+      const index =
+        date.getMonth();
 
+      if(
+        t.type==="income"
+      ){
 
+        monthly[index].income+=
+          Number(t.amount);
 
+      }
 
+      else{
 
+        monthly[index].expense+=
+          Number(t.amount);
 
+      }
 
+    });
 
-  return (
+    return monthly;
 
+  },[transactions]);
 
+  if(loading){
 
-    <motion.div
+    return(
 
+<div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900">
 
-      initial={{
-        opacity:0,
-        y:30,
-      }}
+<div className="h-80 animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-800"/>
 
+</div>
 
+    );
 
-      animate={{
-        opacity:1,
-        y:0,
-      }}
+  }
 
+  return(
 
+<section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
 
-      transition={{
-        duration:0.5,
-      }}
+<div className="mb-6 flex items-center justify-between">
 
+<div className="flex items-center gap-3">
 
-    >
+<div className="rounded-2xl bg-cyan-500/10 p-3">
 
+<TrendingUp
+size={24}
+className="text-cyan-500"
+/>
 
+</div>
 
+<div>
 
+<h2 className="text-2xl font-bold text-slate-900 dark:text-white">
 
-      <Card
+Monthly Trend
 
+</h2>
 
-        className="
+<p className="text-sm text-slate-500">
 
-          relative
+Income vs Expense Comparison
 
-          overflow-hidden
+</p>
 
+</div>
 
-          rounded-3xl
+</div>
 
+</div>
 
-          border
+<div className="h-[350px]">
 
+<ResponsiveContainer>
 
-          border-slate-200
+<AreaChart
+data={data}
+>
 
+<defs>
 
-          bg-white
-
-
-          p-6
-
-
-          shadow-xl
-
-
-          shadow-slate-200/40
-
-
-          backdrop-blur-xl
-
-
-          text-black
-          dark:text-white
-
-          dark:border-white/10
-
-
-          dark:bg-slate-900/70
-
-
-          dark:shadow-black/30
-
-        "
-
-      >
-
-
-
-
-
-
-        {/* Background Glow */}
-
-
-        <div
-
-          className="
-
-            absolute
-
-            -right-20
-
-            -top-20
-
-
-            h-60
-
-            w-60
-
-
-            rounded-full
-
-
-            bg-cyan-500/20
-
-
-            blur-3xl
-
-          "
-
-        />
-
-
-
-
-
-
-
-        <h2
-
-
-          className="
-
-            relative
-
-            mb-6
-
-
-            text-2xl
-
-
-            font-extrabold
-
-
-            text-slate-900
-
-
-
-            dark:text-white
-
-          "
-
-        >
-
-          Monthly Trend
-
-        </h2>
-
-
-
-
-
-
-
-
-        <div className="relative">
-
-
-          <ResponsiveContainer
-
-
-            width="100%"
-
-
-            height={350}
-
-
-          >
-
-
-
-            <LineChart
-
-              data={chartData}
-
-            >
-
-
-
-
-
-              <CartesianGrid
-
-
-                strokeDasharray="4 4"
-
-
-                stroke="currentColor"
-
-
-                opacity={0.15}
-
-
-              />
-
-
-
-
-
-
-
-              <XAxis
-
-
-                dataKey="month"
-
-
-                tick={{
-
-                  fill:
-                    "currentColor",
-
-                }}
-
-
-              />
-
-
-
-
-
-
-
-              <YAxis
-
-
-                tick={{
-
-                  fill:
-                    "currentColor",
-
-                }}
-
-
-
-                tickFormatter={(value)=>
-
-                  `₹${value / 1000}k`
-
-                }
-
-
-              />
-
-
-
-
-
-
-
-
-
-              <Tooltip
-
-
-
-                formatter={(value)=>
-
-                  `₹${Number(value)
-                    .toLocaleString(
-                      "en-IN"
-                    )}`
-
-                }
-
-
-
-                contentStyle={{
-
-
-                  background:
-                    "var(--chart-bg)",
-
-
-                  border:
-                    "1px solid var(--chart-border)",
-
-
-                  borderRadius:
-                    "16px",
-
-
-                }}
-
-
-
-              />
-
-
-
-
-
-
-
-
-
-              <Legend />
-
-
-
-
-
-
-
-
-
-              <Line
-
-
-                type="monotone"
-
-
-                dataKey="income"
-
-
-                name="Income"
-
-
-                stroke="#22c55e"
-
-
-                strokeWidth={4}
-
-
-                dot={{
-
-                  r:5,
-
-                }}
-
-
-
-                activeDot={{
-
-                  r:8,
-
-                }}
-
-
-
-                animationDuration={1200}
-
-
-              />
-
-
-
-
-
-
-
-
-
-              <Line
-
-
-                type="monotone"
-
-
-                dataKey="expense"
-
-
-                name="Expense"
-
-
-                stroke="#ef4444"
-
-
-                strokeWidth={4}
-
-
-                dot={{
-
-                  r:5,
-
-                }}
-
-
-
-                activeDot={{
-
-                  r:8,
-
-                }}
-
-
-
-                animationDuration={1200}
-
-
-              />
-
-
-
-
-
-
-
-            </LineChart>
-
-
-
-
-          </ResponsiveContainer>
-
-
-        </div>
-
-
-
-
-
-
-      </Card>
-
-
-
-
-    </motion.div>
-
+<linearGradient
+id="income"
+x1="0"
+y1="0"
+x2="0"
+y2="1"
+>
+
+<stop
+offset="5%"
+stopColor="#22c55e"
+stopOpacity={0.35}
+/>
+
+<stop
+offset="95%"
+stopColor="#22c55e"
+stopOpacity={0}
+/>
+
+</linearGradient>
+
+<linearGradient
+id="expense"
+x1="0"
+y1="0"
+x2="0"
+y2="1"
+>
+
+<stop
+offset="5%"
+stopColor="#ef4444"
+stopOpacity={0.35}
+/>
+
+<stop
+offset="95%"
+stopColor="#ef4444"
+stopOpacity={0}
+/>
+
+</linearGradient>
+
+</defs>
+
+<CartesianGrid
+strokeDasharray="4"
+/>
+
+<XAxis
+dataKey="month"
+/>
+
+<YAxis/>
+
+<Tooltip
+content={<CustomTooltip/>}
+/>
+
+<Area
+type="monotone"
+dataKey="income"
+stroke="#22c55e"
+strokeWidth={3}
+fill="url(#income)"
+/>
+
+<Area
+type="monotone"
+dataKey="expense"
+stroke="#ef4444"
+strokeWidth={3}
+fill="url(#expense)"
+/>
+
+</AreaChart>
+
+</ResponsiveContainer>
+
+</div>
+
+</section>
 
   );
 
 }
-
-
 
 export default MonthlyTrendChart;

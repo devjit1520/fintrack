@@ -1,28 +1,39 @@
 import {
   createContext,
+  useCallback,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 
-export const ProfileContext = createContext(null);
+import useAuth from "../hooks/useAuth";
+import useActivity from "../hooks/useActivity";
+
+import {
+  getProfile,
+  upsertProfile,
+  updateProfileRecord,
+} from "../services/profileService";
+
+export const ProfileContext =
+  createContext(null);
 
 const defaultProfile = {
-  firstName: "Devjit",
-  lastName: "Mondal",
-  name: "Devjit Mondal",
+  firstName: "",
+  lastName: "",
+  name: "FinTrack User",
 
-  role: "Frontend Developer",
-  email: "devjit@example.com",
-  phone: "+91 9876543210",
+  role: "FinTrack Member",
+  email: "",
+  phone: "",
 
-  city: "Kolkata",
-  state: "West Bengal",
-  country: "India",
-  location: "Kolkata, West Bengal, India",
+  city: "",
+  state: "",
+  country: "",
+  location: "",
 
   website: "",
-  bio: "Frontend developer focused on building modern, responsive and user-friendly web applications.",
-
+  bio: "",
   avatar: "",
 
   preferences: {
@@ -33,7 +44,7 @@ const defaultProfile = {
 
   monthlySavingGoal: {
     target: 20000,
-    saved: 13600,
+    saved: 0,
   },
 
   notifications: {
@@ -52,269 +63,674 @@ const defaultProfile = {
   },
 };
 
-function buildLocation(profileData) {
+function mapDatabaseProfile(row, user) {
+  if (!row) {
+    const metadataName =
+      user?.user_metadata
+        ?.full_name || "";
+
+    return {
+      ...defaultProfile,
+
+      name:
+        metadataName ||
+        user?.email?.split("@")[0] ||
+        "FinTrack User",
+
+      email: user?.email || "",
+    };
+  }
+
+  return {
+    firstName:
+      row.first_name || "",
+
+    lastName:
+      row.last_name || "",
+
+    name:
+      row.full_name ||
+      `${row.first_name || ""} ${
+        row.last_name || ""
+      }`.trim() ||
+      "FinTrack User",
+
+    role:
+      row.role ||
+      "FinTrack Member",
+
+    email:
+      row.email ||
+      user?.email ||
+      "",
+
+    phone: row.phone || "",
+
+    city: row.city || "",
+    state: row.state || "",
+    country: row.country || "",
+    location: row.location || "",
+
+    website: row.website || "",
+    bio: row.bio || "",
+
+    avatar:
+      row.avatar_url || "",
+
+    preferences: {
+      currency:
+        row.currency || "INR",
+
+      language:
+        row.language ||
+        "English",
+
+      dateFormat:
+        row.date_format ||
+        "DD/MM/YYYY",
+    },
+
+    monthlySavingGoal: {
+      target: Number(
+        row.monthly_goal_target ||
+          20000
+      ),
+
+      saved: Number(
+        row.monthly_goal_saved || 0
+      ),
+    },
+
+    notifications: {
+      ...defaultProfile.notifications,
+      ...(row.notifications || {}),
+    },
+
+    security: {
+      ...defaultProfile.security,
+      ...(row.security_preferences ||
+        {}),
+    },
+  };
+}
+
+function buildLocation(data) {
   return [
-    profileData.city?.trim(),
-    profileData.state?.trim(),
-    profileData.country?.trim(),
+    data.city?.trim(),
+    data.state?.trim(),
+    data.country?.trim(),
   ]
     .filter(Boolean)
     .join(", ");
 }
 
-function loadProfile() {
-  try {
-    const savedProfile = localStorage.getItem(
-      "fintrack-profile"
-    );
-
-    if (!savedProfile) {
-      return defaultProfile;
-    }
-
-    const parsedProfile = JSON.parse(savedProfile);
-
-    return {
-      ...defaultProfile,
-      ...parsedProfile,
-
-      preferences: {
-        ...defaultProfile.preferences,
-        ...(parsedProfile.preferences || {}),
-      },
-
-      monthlySavingGoal: {
-        ...defaultProfile.monthlySavingGoal,
-        ...(parsedProfile.monthlySavingGoal || {}),
-      },
-
-      notifications: {
-        ...defaultProfile.notifications,
-        ...(parsedProfile.notifications || {}),
-      },
-
-      security: {
-        ...defaultProfile.security,
-        ...(parsedProfile.security || {}),
-      },
-    };
-  } catch (error) {
-    console.error(
-      "Failed to load saved profile:",
-      error
-    );
-
-    return defaultProfile;
-  }
-}
-
 function ProfileProvider({ children }) {
-  const [profile, setProfile] = useState(
-    loadProfile
-  );
+  const { user, loading: authLoading } =
+    useAuth();
+
+  const { addActivity } =
+    useActivity();
+
+  const [profile, setProfile] =
+    useState(defaultProfile);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [error, setError] =
+    useState("");
+
+  const loadProfile =
+    useCallback(async () => {
+      if (!user?.id) {
+        setProfile(defaultProfile);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError("");
+
+        const result =
+          await getProfile(user.id);
+
+        if (result.error) {
+          throw result.error;
+        }
+
+        if (!result.data) {
+          const metadataName =
+            user.user_metadata
+              ?.full_name || "";
+
+          const createdResult =
+            await upsertProfile(
+              user.id,
+              {
+                full_name:
+                  metadataName ||
+                  user.email?.split(
+                    "@"
+                  )[0] ||
+                  "FinTrack User",
+
+                email:
+                  user.email || "",
+              }
+            );
+
+          if (createdResult.error) {
+            throw createdResult.error;
+          }
+
+          setProfile(
+            mapDatabaseProfile(
+              createdResult.data,
+              user
+            )
+          );
+
+          return;
+        }
+
+        setProfile(
+          mapDatabaseProfile(
+            result.data,
+            user
+          )
+        );
+      } catch (loadError) {
+        console.error(
+          "Unable to load profile:",
+          loadError
+        );
+
+        setProfile(
+          mapDatabaseProfile(
+            null,
+            user
+          )
+        );
+
+        setError(
+          loadError.message ||
+            "Unable to load profile."
+        );
+      } finally {
+        setLoading(false);
+      }
+    }, [user]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(
-        "fintrack-profile",
-        JSON.stringify(profile)
-      );
-    } catch (error) {
-      console.error(
-        "Failed to save profile:",
-        error
-      );
-    }
-  }, [profile]);
+    if (authLoading) return;
 
-  const updateProfile = (newData) => {
-    setProfile((currentProfile) => {
-      const mergedProfile = {
-        ...currentProfile,
-        ...newData,
-      };
+    loadProfile();
+  }, [
+    authLoading,
+    loadProfile,
+  ]);
 
-      const firstName =
-        mergedProfile.firstName?.trim() || "";
+  const saveProfileChanges =
+    useCallback(
+      async (
+        nextProfile,
+        activity
+      ) => {
+        if (!user?.id) {
+          return {
+            success: false,
+            error:
+              "You must be logged in.",
+          };
+        }
 
-      const lastName =
-        mergedProfile.lastName?.trim() || "";
+        const databaseData = {
+          first_name:
+            nextProfile.firstName,
 
-      const generatedName =
-        `${firstName} ${lastName}`.trim();
+          last_name:
+            nextProfile.lastName,
 
-      const generatedLocation =
-        buildLocation(mergedProfile);
+          full_name:
+            nextProfile.name,
 
-      return {
-        ...mergedProfile,
+          role: nextProfile.role,
 
-        firstName,
-        lastName,
+          email:
+            nextProfile.email,
 
-        name:
-          generatedName ||
-          mergedProfile.name ||
-          "FinTrack User",
+          phone:
+            nextProfile.phone,
 
-        location:
-          generatedLocation ||
-          mergedProfile.location ||
-          "Location not added",
-      };
-    });
-  };
+          city: nextProfile.city,
+          state: nextProfile.state,
+          country:
+            nextProfile.country,
 
-  const updateAvatar = (avatar) => {
-    setProfile((currentProfile) => ({
-      ...currentProfile,
-      avatar,
-    }));
-  };
+          location:
+            nextProfile.location,
 
-  const removeAvatar = () => {
-    setProfile((currentProfile) => ({
-      ...currentProfile,
-      avatar: "",
-    }));
-  };
+          website:
+            nextProfile.website,
 
-  const updatePreferences = (
-    newPreferences
-  ) => {
-    setProfile((currentProfile) => ({
-      ...currentProfile,
+          bio: nextProfile.bio,
 
-      preferences: {
-        ...currentProfile.preferences,
-        ...newPreferences,
+          avatar_url:
+            nextProfile.avatar,
+
+          currency:
+            nextProfile.preferences
+              .currency,
+
+          language:
+            nextProfile.preferences
+              .language,
+
+          date_format:
+            nextProfile.preferences
+              .dateFormat,
+
+          monthly_goal_target:
+            nextProfile
+              .monthlySavingGoal
+              .target,
+
+          monthly_goal_saved:
+            nextProfile
+              .monthlySavingGoal
+              .saved,
+
+          notifications:
+            nextProfile.notifications,
+
+          security_preferences:
+            nextProfile.security,
+        };
+
+        const result =
+          await updateProfileRecord(
+            user.id,
+            databaseData
+          );
+
+        if (result.error) {
+          return {
+            success: false,
+            error:
+              result.error.message,
+          };
+        }
+
+        const savedProfile =
+          mapDatabaseProfile(
+            result.data,
+            user
+          );
+
+        setProfile(savedProfile);
+
+        if (activity) {
+          addActivity(activity);
+        }
+
+        return {
+          success: true,
+          data: savedProfile,
+        };
       },
-    }));
-  };
+      [user, addActivity]
+    );
 
-  const updateMonthlySavingGoal = (
-    newGoalData
-  ) => {
-    setProfile((currentProfile) => ({
-      ...currentProfile,
+  const updateProfile =
+    useCallback(
+      async (newData) => {
+        const merged = {
+          ...profile,
+          ...newData,
+        };
 
-      monthlySavingGoal: {
-        ...currentProfile.monthlySavingGoal,
-        ...newGoalData,
+        const firstName =
+          merged.firstName?.trim() ||
+          "";
+
+        const lastName =
+          merged.lastName?.trim() ||
+          "";
+
+        const name =
+          `${firstName} ${lastName}`.trim() ||
+          merged.name ||
+          "FinTrack User";
+
+        const location =
+          buildLocation(merged) ||
+          merged.location ||
+          "";
+
+        return saveProfileChanges(
+          {
+            ...merged,
+            firstName,
+            lastName,
+            name,
+            location,
+          },
+          {
+            type: "profile",
+            title:
+              "Profile information updated",
+            description:
+              "Personal information was changed.",
+          }
+        );
       },
-    }));
-  };
+      [
+        profile,
+        saveProfileChanges,
+      ]
+    );
 
-  const addMonthlySavings = (amount) => {
-    const numericAmount = Number(amount);
+  const updateAvatar =
+    useCallback(
+      async (avatar) => {
+        return saveProfileChanges(
+          {
+            ...profile,
+            avatar,
+          },
+          {
+            type: "profile",
+            title:
+              "Profile photo updated",
+            description:
+              "A new profile image was selected.",
+          }
+        );
+      },
+      [
+        profile,
+        saveProfileChanges,
+      ]
+    );
 
-    if (
-      !Number.isFinite(numericAmount) ||
-      numericAmount <= 0
-    ) {
-      return false;
-    }
-
-    setProfile((currentProfile) => {
-      const currentSaved = Number(
-        currentProfile.monthlySavingGoal?.saved ||
-          0
-      );
-
-      return {
-        ...currentProfile,
-
-        monthlySavingGoal: {
-          ...currentProfile.monthlySavingGoal,
-          saved: currentSaved + numericAmount,
+  const removeAvatar =
+    useCallback(async () => {
+      return saveProfileChanges(
+        {
+          ...profile,
+          avatar: "",
         },
-      };
-    });
+        {
+          type: "profile",
+          title:
+            "Profile photo removed",
+          description:
+            "The custom profile image was removed.",
+        }
+      );
+    }, [
+      profile,
+      saveProfileChanges,
+    ]);
 
-    return true;
-  };
+  const updatePreferences =
+    useCallback(
+      async (preferences) => {
+        return saveProfileChanges(
+          {
+            ...profile,
 
-  const resetMonthlySavingGoal = () => {
-    setProfile((currentProfile) => ({
-      ...currentProfile,
-
-      monthlySavingGoal: {
-        target: 20000,
-        saved: 0,
+            preferences: {
+              ...profile.preferences,
+              ...preferences,
+            },
+          },
+          {
+            type: "preference",
+            title:
+              "Preferences updated",
+            description:
+              "Profile preferences were changed.",
+          }
+        );
       },
-    }));
-  };
+      [
+        profile,
+        saveProfileChanges,
+      ]
+    );
 
-  const updateNotifications = (
-    newNotificationSettings
-  ) => {
-    setProfile((currentProfile) => ({
-      ...currentProfile,
+  const updateMonthlySavingGoal =
+    useCallback(
+      async (goalData) => {
+        return saveProfileChanges(
+          {
+            ...profile,
 
-      notifications: {
-        ...currentProfile.notifications,
-        ...newNotificationSettings,
+            monthlySavingGoal: {
+              ...profile.monthlySavingGoal,
+              ...goalData,
+            },
+          },
+          {
+            type: "goal",
+            title:
+              "Monthly saving goal updated",
+            description:
+              "The monthly target was changed.",
+          }
+        );
       },
-    }));
-  };
+      [
+        profile,
+        saveProfileChanges,
+      ]
+    );
 
-  const updateSecurity = (
-    newSecurityData
-  ) => {
-    setProfile((currentProfile) => ({
-      ...currentProfile,
+  const addMonthlySavings =
+    useCallback(
+      async (amount) => {
+        const numericAmount =
+          Number(amount);
 
-      security: {
-        ...currentProfile.security,
-        ...newSecurityData,
+        if (
+          !Number.isFinite(
+            numericAmount
+          ) ||
+          numericAmount <= 0
+        ) {
+          return false;
+        }
+
+        const result =
+          await saveProfileChanges(
+            {
+              ...profile,
+
+              monthlySavingGoal: {
+                ...profile.monthlySavingGoal,
+
+                saved:
+                  Number(
+                    profile
+                      .monthlySavingGoal
+                      .saved
+                  ) + numericAmount,
+              },
+            },
+            {
+              type: "goal",
+              title:
+                "Monthly savings added",
+
+              description: `₹${numericAmount.toLocaleString(
+                "en-IN"
+              )} was added.`,
+            }
+          );
+
+        return result.success;
       },
-    }));
-  };
+      [
+        profile,
+        saveProfileChanges,
+      ]
+    );
 
-  const resetProfile = () => {
-    setProfile({
-      ...defaultProfile,
+  const resetMonthlySavingGoal =
+    useCallback(async () => {
+      return saveProfileChanges(
+        {
+          ...profile,
 
-      preferences: {
-        ...defaultProfile.preferences,
+          monthlySavingGoal: {
+            target: 20000,
+            saved: 0,
+          },
+        },
+        {
+          type: "goal",
+          title:
+            "Monthly saving goal reset",
+          description:
+            "The target and saved amount were reset.",
+        }
+      );
+    }, [
+      profile,
+      saveProfileChanges,
+    ]);
+
+  const updateNotifications =
+    useCallback(
+      async (notifications) => {
+        return saveProfileChanges(
+          {
+            ...profile,
+
+            notifications: {
+              ...profile.notifications,
+              ...notifications,
+            },
+          },
+          {
+            type: "notification",
+            title:
+              "Notification settings updated",
+            description:
+              "Notification preferences were changed.",
+          }
+        );
       },
+      [
+        profile,
+        saveProfileChanges,
+      ]
+    );
 
-      monthlySavingGoal: {
-        ...defaultProfile.monthlySavingGoal,
-      },
+  const updateSecurity =
+    useCallback(
+      async (security) => {
+        return saveProfileChanges(
+          {
+            ...profile,
 
-      notifications: {
-        ...defaultProfile.notifications,
+            security: {
+              ...profile.security,
+              ...security,
+            },
+          },
+          {
+            type: "security",
+            title:
+              "Security settings updated",
+            description:
+              "Security preferences were changed.",
+          }
+        );
       },
+      [
+        profile,
+        saveProfileChanges,
+      ]
+    );
 
-      security: {
-        ...defaultProfile.security,
-      },
-    });
-  };
+  const resetProfile =
+    useCallback(async () => {
+      const userName =
+        user?.user_metadata
+          ?.full_name ||
+        user?.email?.split("@")[0] ||
+        "FinTrack User";
+
+      return saveProfileChanges(
+        {
+          ...defaultProfile,
+
+          name: userName,
+          email:
+            user?.email || "",
+        },
+        {
+          type: "profile",
+          title: "Profile reset",
+          description:
+            "Profile information was restored to defaults.",
+        }
+      );
+    }, [
+      user,
+      saveProfileChanges,
+    ]);
+
+  const value = useMemo(
+    () => ({
+      profile,
+      setProfile,
+
+      loading,
+      error,
+
+      loadProfile,
+
+      updateProfile,
+
+      updateAvatar,
+      removeAvatar,
+
+      updatePreferences,
+
+      updateMonthlySavingGoal,
+      addMonthlySavings,
+      resetMonthlySavingGoal,
+
+      updateNotifications,
+      updateSecurity,
+
+      resetProfile,
+    }),
+    [
+      profile,
+      loading,
+      error,
+      loadProfile,
+      updateProfile,
+      updateAvatar,
+      removeAvatar,
+      updatePreferences,
+      updateMonthlySavingGoal,
+      addMonthlySavings,
+      resetMonthlySavingGoal,
+      updateNotifications,
+      updateSecurity,
+      resetProfile,
+    ]
+  );
 
   return (
     <ProfileContext.Provider
-      value={{
-        profile,
-        setProfile,
-
-        updateProfile,
-
-        updateAvatar,
-        removeAvatar,
-
-        updatePreferences,
-
-        updateMonthlySavingGoal,
-        addMonthlySavings,
-        resetMonthlySavingGoal,
-
-        updateNotifications,
-        updateSecurity,
-
-        resetProfile,
-      }}
+      value={value}
     >
       {children}
     </ProfileContext.Provider>

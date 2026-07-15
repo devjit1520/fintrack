@@ -1,185 +1,111 @@
-import { useState, useContext } from "react";
-import { FinanceContext } from "../../context/FinanceContext";
+import { useState } from "react";
+
 import TransactionHeader from "../../components/transactions/TransactionHeader";
 import TransactionStats from "../../components/transactions/TransactionStats";
 import TransactionSearch from "../../components/transactions/TransactionSearch";
 import TransactionFilters from "../../components/transactions/TransactionFilters";
 import TransactionTable from "../../components/transactions/TransactionTable";
 import EditTransactionModal from "../../components/transactions/EditTransactionModal";
-// import { AddTransactionForm } from "../../components/transactions/AddTransactionForm";
 import AddTransactionForm from "../../components/transactions/AddTransactionForm";
+import SectionReveal from "../../components/common/SectionReveal";
 
-
-function Transactions(){
-  
-
-  const { addTransaction } = useContext(FinanceContext);
-
+function Transactions() {
   const [search, setSearch] = useState("");
-
   const [filter, setFilter] = useState("all");
-
   const [category, setCategory] = useState("all");
-
   const [sort, setSort] = useState("newest");
 
   const [editing, setEditing] = useState(null);
+  const [addModalOpen, setAddModalOpen] = useState(false);
 
-  const [showForm, setShowForm] = useState(false);
+  const handleOpenAddModal = () => {
+    setAddModalOpen(true);
+  };
 
- const handleAddTransaction = (transaction) => {
-  addTransaction(transaction);
-  setShowForm(false);
-};
+  const handleCloseAddModal = () => {
+    setAddModalOpen(false);
+  };
 
+  const handleCloseEditModal = () => {
+    setEditing(null);
+  };
 
+  const handleResetFilters = () => {
+    setSearch("");
+    setFilter("all");
+    setCategory("all");
+    setSort("newest");
+  };
 
   return (
+    <section className="space-y-6">
+      {/* Header */}
+      <SectionReveal>
+        <TransactionHeader
+          onAddClick={handleOpenAddModal}
+        />
+      </SectionReveal>
 
-    <section className="space-y-8">
+      {/* Statistics */}
+      <SectionReveal delay={0.05}>
+        <TransactionStats />
+      </SectionReveal>
 
-
-     <TransactionHeader
-  onAddClick={() => {
-    console.log("Button clicked");
-    setShowForm(true);
-  }}
-/>
-
-
-
-      {
-        showForm && (
-
-          <div className="relative">
-
- <AddTransactionForm
-  onAdd={handleAddTransaction}
-  onClose={() => setShowForm(false)}
-/>
-
-
-            {/* <button
-
-              onClick={() => setShowForm(false)}
-
-              className="
-              mt-4
-              rounded-xl
-              bg-red-500
-              px-6
-              py-3
-              text-white
-              font-semibold
-              "
-
-            >
-
-              Close
-
-            </button> */}
-
-
-          </div>
-
-        )
-      }
-
-
-
-
-
-      <TransactionStats />
-
-
-
-
-
-      <div className="grid gap-6 lg:grid-cols-4">
-
-
-        <div className="lg:col-span-3">
-
-
+      {/* Main layout */}
+      <div className="grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_244px]">
+        {/* Left column */}
+        <SectionReveal
+          delay={0.1}
+          className="min-w-0 space-y-5"
+        >
           <TransactionSearch
-
             search={search}
-
             setSearch={setSearch}
-
           />
 
+          <TransactionTable
+            search={search}
+            filter={filter}
+            category={category}
+            sort={sort}
+            onEdit={setEditing}
+            onAdd={handleOpenAddModal}
+          />
+        </SectionReveal>
 
-        </div>
-
-
-
-
-
-        <TransactionFilters
-
-          filter={filter}
-
-          setFilter={setFilter}
-
-          category={category}
-
-          setCategory={setCategory}
-
-          sort={sort}
-
-          setSort={setSort}
-
-        />
-
-
+        {/* Right filter column */}
+        <SectionReveal
+          delay={0.14}
+          direction="left"
+          className="min-w-0 xl:sticky xl:top-24"
+        >
+          <TransactionFilters
+            filter={filter}
+            setFilter={setFilter}
+            category={category}
+            setCategory={setCategory}
+            sort={sort}
+            setSort={setSort}
+            onReset={handleResetFilters}
+          />
+        </SectionReveal>
       </div>
 
-
-
-
-
-
-      <TransactionTable
-
-        search={search}
-
-        filter={filter}
-
-        category={category}
-
-        sort={sort}
-
-        onEdit={setEditing}
-
+      {/* Add transaction modal */}
+      <AddTransactionForm
+        open={addModalOpen}
+        onClose={handleCloseAddModal}
       />
 
-
-
-
-
-
-      {
-        editing && (
-
-          <EditTransactionModal
-
-            transaction={editing}
-
-            onClose={() => setEditing(null)}
-
-          />
-
-        )
-      }
-
-
-
+      {/* Edit transaction modal */}
+      {editing && (
+        <EditTransactionModal
+          transaction={editing}
+          onClose={handleCloseEditModal}
+        />
+      )}
     </section>
-
   );
-
 }
-
 
 export default Transactions;

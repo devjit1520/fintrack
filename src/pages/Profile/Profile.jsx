@@ -1,4 +1,6 @@
-import { motion } from "framer-motion";
+import {
+  motion,
+} from "framer-motion";
 
 import ProfileHeader from "../../components/Profile/ProfileHeader";
 import PersonalInfoCard from "../../components/Profile/PersonalInfoCard";
@@ -7,6 +9,8 @@ import FinancialGoalCard from "../../components/Profile/FinancialGoalCard";
 import StatisticsCard from "../../components/Profile/StatisticsCard";
 import SecurityCard from "../../components/Profile/SecurityCard";
 import NotificationCard from "../../components/Profile/NotificationCard";
+import ActivityTimeline from "../../components/Profile/ActivityTimeline";
+import LoginHistoryCard from "../../components/Profile/LoginHistoryCard";
 import DangerZoneCard from "../../components/Profile/DangerZoneCard";
 
 function Profile() {
@@ -15,27 +19,34 @@ function Profile() {
       className="
         min-h-screen
         bg-slate-50
-        px-1
         py-2
         text-slate-900
         transition-colors
         dark:bg-slate-950
         dark:text-white
-        sm:px-2
       "
     >
-      <div className="mx-auto max-w-7xl space-y-6">
+      <div
+        className="
+          mx-auto
+          max-w-7xl
+          space-y-6
+        "
+      >
         <motion.div
-          initial={{ opacity: 0, y: -16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35 }}
+          initial={{
+            opacity: 0,
+            y: -16,
+          }}
+          animate={{
+            opacity: 1,
+            y: 0,
+          }}
         >
           <h1
             className="
               text-3xl
               font-bold
-              text-slate-900
-              dark:text-white
               md:text-4xl
             "
           >
@@ -49,20 +60,32 @@ function Profile() {
               dark:text-slate-400
             "
           >
-            Manage your profile, preferences,
-            security and account information.
+            Manage your personal details,
+            preferences, security and account
+            activity.
           </p>
         </motion.div>
 
         <ProfileHeader />
 
-        <div className="grid gap-6 xl:grid-cols-2">
+        <div
+          className="
+            grid
+            gap-6
+            xl:grid-cols-2
+          "
+        >
           <PersonalInfoCard />
           <PreferencesCard />
+
           <FinancialGoalCard />
           <StatisticsCard />
+
           <SecurityCard />
           <NotificationCard />
+
+          <ActivityTimeline />
+          <LoginHistoryCard />
         </div>
 
         <DangerZoneCard />

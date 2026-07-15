@@ -1,661 +1,317 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import {
+  CalendarDays,
+  IndianRupee,
+  ReceiptText,
+} from "lucide-react";
+import toast from "react-hot-toast";
 
-export default function AddTransactionForm({ onAdd, onClose }) {
+import useFinance from "../../hooks/useFinance";
 
-  const [formData, setFormData] = useState({
-    title: "",
-    amount: "",
-    type: "expense",
-    category: "",
-    date: new Date().toISOString().split("T")[0],
-    note: "",
-  });
+import ModalShell from "../common/ModalShell";
+import Button from "../common/Button";
+import FormField from "../common/FormField";
+import SelectField from "../common/SelectField";
+import TextareaField from "../common/TextareaField";
 
+const initialForm = {
+  title: "",
+  amount: "",
+  type: "expense",
+  category: "Food",
+  date: new Date().toISOString().split("T")[0],
+  note: "",
+};
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
+const incomeCategories = [
+  "Salary",
+  "Freelance",
+  "Business",
+  "Investment",
+  "Gift",
+  "Other",
+];
 
-    setFormData((prev) => ({
-      ...prev,
-      [name]: name === "amount" ? Number(value) : value,
+const expenseCategories = [
+  "Food",
+  "Transport",
+  "Shopping",
+  "Bills",
+  "Entertainment",
+  "Health",
+  "Education",
+  "Rent",
+  "Other",
+];
+
+function AddTransactionForm({
+  open,
+  onClose,
+  defaultType = "expense",
+}) {
+  const { addTransaction } = useFinance();
+
+  const [form, setForm] = useState(initialForm);
+  const [errors, setErrors] = useState({});
+  const [submitting, setSubmitting] =
+    useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+
+    setForm({
+      ...initialForm,
+      type: defaultType,
+      category:
+        defaultType === "income"
+          ? "Salary"
+          : "Food",
+    });
+
+    setErrors({});
+  }, [open, defaultType]);
+
+  const categoryOptions =
+    form.type === "income"
+      ? incomeCategories
+      : expenseCategories;
+
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+
+    setForm((previous) => {
+      if (name === "type") {
+        return {
+          ...previous,
+          type: value,
+          category:
+            value === "income"
+              ? "Salary"
+              : "Food",
+        };
+      }
+
+      return {
+        ...previous,
+        [name]: value,
+      };
+    });
+
+    setErrors((previous) => ({
+      ...previous,
+      [name]: "",
     }));
   };
 
+  const validateForm = () => {
+    const nextErrors = {};
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-
-    if (!formData.title.trim()) {
-      alert("Please enter a title.");
-      return;
+    if (!form.title.trim()) {
+      nextErrors.title =
+        "Transaction title is required.";
     }
 
-    if (!formData.amount || formData.amount <= 0) {
-      alert("Please enter a valid amount.");
-      return;
+    if (
+      !form.amount ||
+      Number(form.amount) <= 0
+    ) {
+      nextErrors.amount =
+        "Enter an amount greater than zero.";
     }
 
-
-    const transaction = {
-      id: Date.now(),
-      ...formData,
-    };
-
-
-    if (onAdd) {
-      onAdd(transaction);
+    if (!form.date) {
+      nextErrors.date =
+        "Transaction date is required.";
     }
 
+    setErrors(nextErrors);
 
-    setFormData({
-      title: "",
-      amount: "",
-      type: "expense",
-      category: "",
-      date: new Date().toISOString().split("T")[0],
-      note: "",
-    });
+    return Object.keys(nextErrors).length === 0;
+  };
 
+  const handleSubmit = async (event) => {
+    event.preventDefault();
 
-    if (onClose) {
+    if (!validateForm()) return;
+
+    try {
+      setSubmitting(true);
+
+      addTransaction({
+        id: Date.now(),
+        title: form.title.trim(),
+        amount: Number(form.amount),
+        type: form.type,
+        category: form.category,
+        date: form.date,
+        note: form.note.trim(),
+        createdAt: new Date().toISOString(),
+      });
+
+      toast.success("Transaction added successfully.");
+
+      setForm(initialForm);
+      setErrors({});
       onClose();
+    } catch (error) {
+      console.error(
+        "Failed to add transaction:",
+        error
+      );
+
+      toast.error("Unable to add transaction.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
+  const handleClose = () => {
+    if (submitting) return;
+
+    setErrors({});
+    onClose();
+  };
 
   return (
-    <div
-      className="
-        fixed
-        inset-0
-        z-50
-        flex
-        items-center
-        justify-center
-        bg-black/60
-        backdrop-blur-sm
-        p-4
-      "
-    >
-
-      <div
-        className="
-          relative
-          w-full
-          max-w-2xl
-          max-h-[90vh]
-          overflow-y-auto
-
-          rounded-3xl
-
-          border
-          border-slate-200
-
-          bg-white
-
-          shadow-[0_25px_80px_rgba(0,0,0,0.25)]
-
-          dark:border-slate-700
-          dark:bg-gradient-to-br
-          dark:from-slate-950
-          dark:via-slate-900
-          dark:to-slate-800
-
-          dark:shadow-[0_25px_80px_rgba(0,0,0,0.6)]
-        "
-      >
-
-
-        {/* Close Button */}
-        <button
-          type="button"
-          onClick={onClose}
-          className="
-            absolute
-            right-5
-            top-5
-
-            flex
-            h-10
-            w-10
-            items-center
-            justify-center
-
-            rounded-full
-
-            bg-slate-200
-            text-slate-700
-
-            transition
-
-            hover:bg-red-500
-            hover:text-white
-
-            dark:bg-slate-800
-            dark:text-slate-300
-          "
-        >
-          ✕
-        </button>
-
-
-
-        <form
-          onSubmit={handleSubmit}
-          className="space-y-6 p-8"
-        >
-
-
-          {/* Header */}
-
-          <div className="space-y-2">
-
-            <h2
-              className="
-                text-3xl
-                font-bold
-
-                text-slate-900
-
-                dark:text-white
-              "
-            >
-              Add Transaction
-            </h2>
-
-
-            <p
-              className="
-                text-slate-600
-
-                dark:text-slate-400
-              "
-            >
-              Record your income or expense securely.
-            </p>
-
-          </div>
-
-
-
-          {/* Title */}
-
-          <input
-            type="text"
-            name="title"
-            placeholder="Transaction Title"
-            value={formData.title}
-            onChange={handleChange}
-            className="
-              w-full
-
-              rounded-2xl
-
-              border
-              border-slate-200
-
-              bg-slate-100
-
-              px-5
-              py-3
-
-              text-slate-900
-
-              placeholder:text-slate-400
-
-              outline-none
-
-              transition
-
-              focus:border-blue-500
-              focus:ring-2
-              focus:ring-blue-500/30
-
-
-              dark:border-slate-700
-              dark:bg-slate-800/60
-              dark:text-white
-              dark:placeholder:text-slate-500
-            "
-          />
-
-
-
-          {/* Amount */}
-
-          <input
-            type="number"
-            name="amount"
-            placeholder="Amount"
-            value={formData.amount || ""}
-            onChange={handleChange}
-            className="
-              w-full
-
-              rounded-2xl
-
-              border
-              border-slate-200
-
-              bg-slate-100
-
-              px-5
-              py-3
-
-              text-slate-900
-
-              placeholder:text-slate-400
-
-              outline-none
-
-              transition
-
-              focus:border-blue-500
-              focus:ring-2
-              focus:ring-blue-500/30
-
-
-              dark:border-slate-700
-              dark:bg-slate-800/60
-              dark:text-white
-              dark:placeholder:text-slate-500
-            "
-          />
-
-
-
-          {/* Transaction Type */}
-
-          <div className="space-y-3">
-
-            <label
-              className="
-                text-sm
-                font-semibold
-
-                text-slate-700
-
-                dark:text-slate-300
-              "
-            >
-              Transaction Type
-            </label>
-
-
-            <div className="grid grid-cols-2 gap-4">
-
-
-              {/* Expense */}
-
-              <button
-                type="button"
-                onClick={() =>
-                  setFormData({
-                    ...formData,
-                    type: "expense",
-                    category: "",
-                  })
-                }
-
-                className={`rounded-2xl border p-5 transition-all duration-300 ${
-                  formData.type === "expense"
-
-                  ? 
-                  "border-red-500 bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-lg shadow-red-500/30"
-
-                  :
-
-                  "border-slate-200 bg-slate-100 text-slate-700 hover:border-red-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
-                }`}
-              >
-
-                <div className="text-3xl">
-                  💸
-                </div>
-
-
-                <p className="mt-2 text-lg font-semibold">
-                  Expense
-                </p>
-
-
-                <p className="text-sm opacity-80">
-                  Money Out
-                </p>
-
-
-              </button>
-              {/* Income */}
-
-              <button
-                type="button"
-                onClick={() =>
-                  setFormData({
-                    ...formData,
-                    type: "income",
-                    category: "",
-                  })
-                }
-
-                className={`rounded-2xl border p-5 transition-all duration-300 ${
-                  formData.type === "income"
-
-                  ?
-
-                  "border-green-500 bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/30"
-
-                  :
-
-                  "border-slate-200 bg-slate-100 text-slate-700 hover:border-green-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
-                }`}
-              >
-
-                <div className="text-3xl">
-                  💰
-                </div>
-
-
-                <p className="mt-2 text-lg font-semibold">
-                  Income
-                </p>
-
-
-                <p className="text-sm opacity-80">
-                  Money In
-                </p>
-
-
-              </button>
-
-
-            </div>
-
-          </div>
-
-
-
-
-          {/* Category */}
-
-          <div className="space-y-2">
-
-            <label
-              className="
-                text-sm
-                font-medium
-
-                text-slate-700
-
-                dark:text-slate-300
-              "
-            >
-              Category
-            </label>
-
-
-            <div className="relative">
-
-              <select
-                name="category"
-                value={formData.category}
-                onChange={handleChange}
-                className="
-                  appearance-none
-
-                  w-full
-
-                  rounded-2xl
-
-                  border
-                  border-slate-200
-
-                  bg-slate-100
-
-                  px-5
-                  py-4
-
-                  text-slate-900
-
-                  outline-none
-
-                  transition-all
-
-                  duration-300
-
-                  hover:border-blue-500
-
-                  focus:border-blue-500
-
-                  focus:ring-4
-
-                  focus:ring-blue-500/20
-
-
-                  dark:border-slate-700
-                  dark:bg-slate-800
-                  dark:text-white
-                "
-              >
-
-                <option value="">
-                  📂 Select Category
-                </option>
-
-                <option value="Food">
-                  🍔 Food
-                </option>
-
-                <option value="Shopping">
-                  🛍 Shopping
-                </option>
-
-                <option value="Transport">
-                  🚗 Transport
-                </option>
-
-                <option value="Travel">
-                  ✈️ Travel
-                </option>
-
-                <option value="Healthcare">
-                  🏥 Healthcare
-                </option>
-
-                <option value="Education">
-                  📚 Education
-                </option>
-
-                <option value="Bills">
-                  💡 Bills
-                </option>
-
-                <option value="Entertainment">
-                  🎬 Entertainment
-                </option>
-
-                <option value="Salary">
-                  💼 Salary
-                </option>
-
-                <option value="Business">
-                  🏢 Business
-                </option>
-
-                <option value="Freelance">
-                  💻 Freelance
-                </option>
-
-                <option value="Investment">
-                  📈 Investment
-                </option>
-
-              </select>
-
-
-              <div
-                className="
-                  pointer-events-none
-                  absolute
-                  right-5
-                  top-1/2
-                  -translate-y-1/2
-
-                  text-slate-400
-                "
-              >
-                ⌄
-              </div>
-
-
-            </div>
-
-
-          </div>
-
-
-
-
-
-          {/* Date */}
-
-          <input
-            type="date"
-            name="date"
-            value={formData.date}
-            onChange={handleChange}
-            className="
-              w-full
-
-              rounded-2xl
-
-              border
-              border-slate-200
-
-              bg-slate-100
-
-              px-5
-              py-3
-
-              text-slate-900
-
-              outline-none
-
-              focus:border-blue-500
-
-              focus:ring-2
-
-              focus:ring-blue-500/30
-
-
-              dark:border-slate-700
-              dark:bg-slate-800/60
-              dark:text-white
-            "
-          />
-
-
-
-
-
-          {/* Buttons */}
-
-          <div
-            className="
-              flex
-              justify-end
-              gap-4
-              pt-4
-            "
+    <ModalShell
+      open={open}
+      onClose={handleClose}
+      title="Add Transaction"
+      description="Record a new income or expense."
+      size="md"
+      footer={
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <Button
+            variant="secondary"
+            onClick={handleClose}
+            disabled={submitting}
           >
+            Cancel
+          </Button>
 
+          <Button
+            type="submit"
+            form="add-transaction-form"
+            loading={submitting}
+          >
+            Save Transaction
+          </Button>
+        </div>
+      }
+    >
+      <form
+        id="add-transaction-form"
+        onSubmit={handleSubmit}
+        className="space-y-5"
+      >
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() =>
+              handleChange({
+                target: {
+                  name: "type",
+                  value: "income",
+                },
+              })
+            }
+            className={[
+              "rounded-xl border px-4 py-3",
+              "text-sm font-semibold transition-all",
+              form.type === "income"
+                ? "border-emerald-500 bg-emerald-500/10 text-emerald-600 ring-4 ring-emerald-500/10 dark:text-emerald-400"
+                : "border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800",
+            ].join(" ")}
+          >
+            Income
+          </button>
 
-            {/* Cancel */}
+          <button
+            type="button"
+            onClick={() =>
+              handleChange({
+                target: {
+                  name: "type",
+                  value: "expense",
+                },
+              })
+            }
+            className={[
+              "rounded-xl border px-4 py-3",
+              "text-sm font-semibold transition-all",
+              form.type === "expense"
+                ? "border-rose-500 bg-rose-500/10 text-rose-600 ring-4 ring-rose-500/10 dark:text-rose-400"
+                : "border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800",
+            ].join(" ")}
+          >
+            Expense
+          </button>
+        </div>
 
-            <button
-              type="button"
-              onClick={onClose}
-              className="
-                rounded-2xl
+        <FormField
+          label="Transaction title"
+          name="title"
+          value={form.title}
+          onChange={handleChange}
+          placeholder="Example: Grocery shopping"
+          icon={ReceiptText}
+          error={errors.title}
+          required
+        />
 
-                border
-                border-slate-200
+        <div className="grid gap-5 sm:grid-cols-2">
+          <FormField
+            label="Amount"
+            name="amount"
+            type="number"
+            value={form.amount}
+            onChange={handleChange}
+            placeholder="0.00"
+            icon={IndianRupee}
+            error={errors.amount}
+            min="0"
+            step="0.01"
+            required
+          />
 
-                bg-slate-100
+          <FormField
+            label="Date"
+            name="date"
+            type="date"
+            value={form.date}
+            onChange={handleChange}
+            icon={CalendarDays}
+            error={errors.date}
+            required
+          />
+        </div>
 
-                px-6
-                py-3
+        <SelectField
+          label="Category"
+          name="category"
+          value={form.category}
+          onChange={handleChange}
+          options={categoryOptions.map(
+            (category) => ({
+              label: category,
+              value: category,
+            })
+          )}
+          required
+        />
 
-                font-medium
-
-                text-slate-700
-
-                transition
-
-                hover:bg-slate-200
-
-
-                dark:border-slate-700
-                dark:bg-slate-800
-                dark:text-slate-300
-                dark:hover:bg-slate-700
-                dark:hover:text-white
-              "
-            >
-              Cancel
-            </button>
-
-
-
-
-            {/* Submit */}
-
-            <button
-              type="submit"
-              className="
-                rounded-2xl
-
-                bg-gradient-to-r
-
-                from-blue-600
-
-                to-indigo-600
-
-                px-8
-
-                py-3
-
-                font-semibold
-
-                text-white
-
-                transition-all
-
-                duration-300
-
-                hover:scale-105
-
-                hover:from-blue-500
-
-                hover:to-indigo-500
-
-                hover:shadow-lg
-
-                hover:shadow-blue-500/30
-              "
-            >
-              + Add Transaction
-            </button>
-
-
-          </div>
-
-
-        </form>
-
-
-      </div>
-
-
-    </div>
+        <TextareaField
+          label="Note"
+          name="note"
+          value={form.note}
+          onChange={handleChange}
+          placeholder="Add an optional note..."
+          rows={3}
+          maxLength={150}
+        />
+      </form>
+    </ModalShell>
   );
 }
+
+export default AddTransactionForm;

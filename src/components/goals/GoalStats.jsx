@@ -1,173 +1,151 @@
-import { motion } from "framer-motion";
 import {
-  Target,
+  CheckCircle2,
   PiggyBank,
+  Target,
   Wallet,
-  Trophy,
 } from "lucide-react";
 
-import Card from "../common/Card";
-import useGoal from "../../hooks/useGoal";
+function formatCurrency(value) {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(Number(value) || 0);
+}
 
-function GoalStats() {
-  const { goals } = useGoal();
-
+function GoalStats({ goals = [] }) {
   const totalGoals = goals.length;
 
+  const completedGoals = goals.filter((goal) => {
+    const target = Number(goal.targetAmount || 0);
+    const saved = Number(goal.savedAmount || 0);
+
+    return (
+      String(goal.status).toLowerCase() === "completed" ||
+      (target > 0 && saved >= target)
+    );
+  }).length;
+
   const totalTarget = goals.reduce(
-    (sum, goal) =>
-      sum +
-      Number(
-        goal.targetAmount ||
-          goal.target ||
-          goal.amount ||
-          0
-      ),
+    (total, goal) =>
+      total + Number(goal.targetAmount || 0),
     0
   );
 
   const totalSaved = goals.reduce(
-    (sum, goal) =>
-      sum +
-      Number(
-        goal.savedAmount ||
-          goal.saved ||
-          0
-      ),
+    (total, goal) =>
+      total + Number(goal.savedAmount || 0),
     0
   );
 
-  const completion =
-    totalTarget > 0
-      ? ((totalSaved / totalTarget) * 100).toFixed(1)
-      : 0;
-
-  const cards = [
+  const stats = [
     {
       title: "Total Goals",
       value: totalGoals,
+      subtitle: "All saving goals",
       icon: Target,
-      color: "from-cyan-500 to-blue-600",
-      text: "text-cyan-500",
-      suffix: "",
+      classes:
+        "border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/30",
+      iconClasses:
+        "bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400",
     },
     {
-      title: "Target Amount",
-      value: totalTarget.toLocaleString("en-IN"),
+      title: "Completed",
+      value: completedGoals,
+      subtitle: "Goals achieved",
+      icon: CheckCircle2,
+      classes:
+        "border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/30",
+      iconClasses:
+        "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/50 dark:text-emerald-400",
+    },
+    {
+      title: "Total Target",
+      value: formatCurrency(totalTarget),
+      subtitle: "Combined target",
       icon: Wallet,
-      color: "from-green-500 to-emerald-600",
-      text: "text-green-500",
-      suffix: "₹",
+      classes:
+        "border-violet-200 bg-violet-50 dark:border-violet-900 dark:bg-violet-950/30",
+      iconClasses:
+        "bg-violet-100 text-violet-600 dark:bg-violet-900/50 dark:text-violet-400",
     },
     {
-      title: "Saved Amount",
-      value: totalSaved.toLocaleString("en-IN"),
+      title: "Total Saved",
+      value: formatCurrency(totalSaved),
+      subtitle: "Combined progress",
       icon: PiggyBank,
-      color: "from-yellow-500 to-orange-500",
-      text: "text-yellow-500",
-      suffix: "₹",
-    },
-    {
-      title: "Completion",
-      value: completion,
-      icon: Trophy,
-      color: "from-purple-500 to-pink-500",
-      text: "text-purple-500",
-      suffix: "%",
+      classes:
+        "border-cyan-200 bg-cyan-50 dark:border-cyan-900 dark:bg-cyan-950/30",
+      iconClasses:
+        "bg-cyan-100 text-cyan-600 dark:bg-cyan-900/50 dark:text-cyan-400",
     },
   ];
 
   return (
-    <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-      {cards.map((card, index) => {
-        const Icon = card.icon;
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      {stats.map((stat) => {
+        const Icon = stat.icon;
 
         return (
-          <motion.div
-            key={card.title}
-            initial={{
-              opacity: 0,
-              y: 25,
-            }}
-            animate={{
-              opacity: 1,
-              y: 0,
-            }}
-            transition={{
-              delay: index * 0.1,
-            }}
+          <article
+            key={stat.title}
+            className={`
+              rounded-2xl
+              border
+              p-5
+              ${stat.classes}
+            `}
           >
-            <Card
+            <div
+              className={`
+                flex
+                h-11
+                w-11
+                items-center
+                justify-center
+                rounded-xl
+                ${stat.iconClasses}
+              `}
+            >
+              <Icon size={21} />
+            </div>
+
+            <p
               className="
-                relative
-                overflow-hidden
-
-                bg-white
-                dark:bg-slate-900
-
-                border-slate-200
-                dark:border-slate-800
+                mt-4
+                text-sm
+                font-medium
+                text-slate-500
+                dark:text-slate-400
               "
             >
-              {/* Glow */}
-              <div
-                className={`absolute -right-10 -top-10 h-32 w-32 rounded-full bg-gradient-to-r ${card.color} opacity-10 blur-3xl`}
-              />
+              {stat.title}
+            </p>
 
-              <div className="relative flex items-center justify-between">
+            <h3
+              className="
+                mt-1
+                break-words
+                text-2xl
+                font-bold
+                text-slate-900
+                dark:text-white
+              "
+            >
+              {stat.value}
+            </h3>
 
-                <div>
-
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                    {card.title}
-                  </p>
-
-                  <h2
-                    className={`mt-4 text-3xl font-bold ${card.text}`}
-                  >
-                    {card.suffix === "₹" && "₹"}
-                    {card.value}
-                    {card.suffix === "%" && "%"}
-                  </h2>
-
-                </div>
-
-                <div
-                  className={`rounded-2xl bg-gradient-to-r ${card.color} p-4 shadow-lg`}
-                >
-                  <Icon
-                    size={30}
-                    className="text-white"
-                  />
-                </div>
-
-              </div>
-
-              {card.title !== "Completion" && (
-                <div className="mt-6 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
-
-                  <motion.div
-                    initial={{
-                      width: 0,
-                    }}
-                    animate={{
-                      width:
-                        card.title === "Saved Amount"
-                          ? `${completion}%`
-                          : "100%",
-                    }}
-                    transition={{
-                      duration: 1,
-                    }}
-                    className={`h-full rounded-full bg-gradient-to-r ${card.color}`}
-                  />
-                  
-
-                </div>
-              )}
-
-            </Card>
-          </motion.div>
+            <p
+              className="
+                mt-2
+                text-xs
+                text-slate-500
+                dark:text-slate-400
+              "
+            >
+              {stat.subtitle}
+            </p>
+          </article>
         );
       })}
     </div>

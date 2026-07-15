@@ -38,10 +38,10 @@ export const navigation = [
     path: "/analytics",
     icon: BarChart3,
   },
-  {
-    id: 6,
-    title: "Settings",
-    path: "/settings",
-    icon: Settings,
-  },
+  // {
+  //   id: 6,
+  //   title: "Settings",
+  //   path: "/settings",
+  //   icon: Settings,
+  // },
 ];

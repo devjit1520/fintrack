@@ -1,201 +1,268 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
-import { X, Target } from "lucide-react";
+import { X, Target, CalendarDays, IndianRupee } from "lucide-react";
 
-function GoalModal({
-  open,
-  onClose,
-  onGoalAdded,
-}) {
-  const [goal, setGoal] = useState({
+import useGoal from "../../hooks/useGoal";
+
+function GoalModal({ open, onClose }) {
+  const { addGoal } = useGoal();
+
+  const [formData, setFormData] = useState({
     title: "",
-    amount: "",
+    targetAmount: "",
+    savedAmount: "",
     deadline: "",
   });
 
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
   if (!open) return null;
 
-  const handleChange = (e) => {
-    setGoal({
-      ...goal,
-      [e.target.name]: e.target.value,
-    });
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+
+    setFormData((current) => ({
+      ...current,
+      [name]: value,
+    }));
+
+    setError("");
   };
 
-  const handleSave = () => {
-    if (!goal.title || !goal.amount) {
-      alert("Please fill all required fields.");
-      return;
-    }
-
-    const newGoal = {
-      id: Date.now(),
-
-      title: goal.title,
-
-      target: Number(goal.amount),
-
-      saved: 0,
-
-      deadline: goal.deadline,
-
-      status: "Active",
-
-      createdAt: new Date().toISOString(),
-    };
-
-    const oldGoals =
-      JSON.parse(localStorage.getItem("goals")) || [];
-
-    const updatedGoals = [
-      ...oldGoals,
-      newGoal,
-    ];
-
-    localStorage.setItem(
-      "goals",
-      JSON.stringify(updatedGoals)
-    );
-
-    if (onGoalAdded) {
-      onGoalAdded(newGoal);
-    }
-
-    setGoal({
+  const resetForm = () => {
+    setFormData({
       title: "",
-      amount: "",
+      targetAmount: "",
+      savedAmount: "",
       deadline: "",
     });
 
+    setError("");
+  };
+
+  const handleClose = () => {
+    if (submitting) return;
+
+    resetForm();
     onClose();
   };
 
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    const title = formData.title.trim();
+    const targetAmount = Number(formData.targetAmount);
+    const savedAmount = Number(formData.savedAmount || 0);
+
+    if (!title) {
+      setError("Goal title is required.");
+      return;
+    }
+
+    if (!Number.isFinite(targetAmount) || targetAmount <= 0) {
+      setError("Enter a valid target amount.");
+      return;
+    }
+
+    if (!Number.isFinite(savedAmount) || savedAmount < 0) {
+      setError("Saved amount cannot be negative.");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      setError("");
+
+      const result = await addGoal({
+        title,
+        targetAmount,
+        savedAmount,
+        deadline: formData.deadline || null,
+        status:
+          savedAmount >= targetAmount
+            ? "completed"
+            : "active",
+      });
+
+      if (!result?.success) {
+        setError(
+          result?.error ||
+            "The goal could not be created."
+        );
+        return;
+      }
+
+      resetForm();
+      onClose();
+    } catch (submitError) {
+      console.error("Goal creation failed:", submitError);
+
+      setError(
+        submitError.message ||
+          "The goal could not be created."
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-700 dark:bg-slate-900">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+              Create Saving Goal
+            </h2>
 
-      <motion.div
-        initial={{
-          opacity: 0,
-          scale: 0.8,
-        }}
-        animate={{
-          opacity: 1,
-          scale: 1,
-        }}
-        className="w-full max-w-lg rounded-3xl border border-white/10 bg-slate-900 p-8 shadow-2xl"
-      >
-        {/* Header */}
-
-        <div className="mb-8 flex items-center justify-between">
-
-          <div className="flex items-center gap-3">
-
-            <div className="rounded-2xl bg-cyan-500/20 p-3">
-              <Target
-                size={24}
-                className="text-cyan-400"
-              />
-            </div>
-
-            <div>
-              <h2 className="text-2xl font-bold text-white">
-                Create Goal
-              </h2>
-
-              <p className="text-sm text-slate-400">
-                Start saving smarter
-              </p>
-            </div>
-
+            <p className="mt-1 text-sm text-slate-500">
+              Set a financial target and track your progress.
+            </p>
           </div>
 
           <button
-            onClick={onClose}
-            className="rounded-xl p-2 text-slate-400 transition hover:bg-slate-800 hover:text-white"
+            type="button"
+            onClick={handleClose}
+            disabled={submitting}
+            className="rounded-xl p-2 text-slate-500 transition hover:bg-slate-100 dark:hover:bg-slate-800"
           >
-            <X />
+            <X size={20} />
           </button>
-
         </div>
 
-        {/* Goal Name */}
+        <form onSubmit={handleSubmit} className="mt-6 space-y-5">
+          <div>
+            <label
+              htmlFor="title"
+              className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300"
+            >
+              Goal Name
+            </label>
 
-        <div className="mb-5">
+            <div className="relative">
+              <Target
+                size={18}
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+              />
 
-          <label className="mb-2 block text-sm text-slate-300">
-            Goal Name
-          </label>
+              <input
+                id="title"
+                name="title"
+                value={formData.title}
+                onChange={handleChange}
+                placeholder="Buy a new laptop"
+                className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-11 pr-4 text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-4 focus:ring-cyan-500/10 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+              />
+            </div>
+          </div>
 
-          <input
-            type="text"
-            name="title"
-            value={goal.title}
-            onChange={handleChange}
-            placeholder="Example: Buy Laptop"
-            className="w-full rounded-2xl border border-slate-700 bg-slate-800 p-4 text-white outline-none transition focus:border-cyan-500"
-          />
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div>
+              <label
+                htmlFor="targetAmount"
+                className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300"
+              >
+                Target Amount
+              </label>
 
-        </div>
+              <div className="relative">
+                <IndianRupee
+                  size={18}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                />
 
-        {/* Target */}
+                <input
+                  id="targetAmount"
+                  name="targetAmount"
+                  type="number"
+                  min="1"
+                  value={formData.targetAmount}
+                  onChange={handleChange}
+                  placeholder="50000"
+                  className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-11 pr-4 text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-4 focus:ring-cyan-500/10 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                />
+              </div>
+            </div>
 
-        <div className="mb-5">
+            <div>
+              <label
+                htmlFor="savedAmount"
+                className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300"
+              >
+                Already Saved
+              </label>
 
-          <label className="mb-2 block text-sm text-slate-300">
-            Target Amount
-          </label>
+              <div className="relative">
+                <IndianRupee
+                  size={18}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                />
 
-          <input
-            type="number"
-            name="amount"
-            value={goal.amount}
-            onChange={handleChange}
-            placeholder="₹50,000"
-            className="w-full rounded-2xl border border-slate-700 bg-slate-800 p-4 text-white outline-none transition focus:border-cyan-500"
-          />
+                <input
+                  id="savedAmount"
+                  name="savedAmount"
+                  type="number"
+                  min="0"
+                  value={formData.savedAmount}
+                  onChange={handleChange}
+                  placeholder="0"
+                  className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-11 pr-4 text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-4 focus:ring-cyan-500/10 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                />
+              </div>
+            </div>
+          </div>
 
-        </div>
+          <div>
+            <label
+              htmlFor="deadline"
+              className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300"
+            >
+              Deadline
+            </label>
 
-        {/* Deadline */}
+            <div className="relative">
+              <CalendarDays
+                size={18}
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+              />
 
-        <div className="mb-8">
+              <input
+                id="deadline"
+                name="deadline"
+                type="date"
+                value={formData.deadline}
+                onChange={handleChange}
+                className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-11 pr-4 text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-4 focus:ring-cyan-500/10 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+              />
+            </div>
+          </div>
 
-          <label className="mb-2 block text-sm text-slate-300">
-            Deadline
-          </label>
+          {error && (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-600 dark:border-red-900 dark:bg-red-950/30">
+              {error}
+            </div>
+          )}
 
-          <input
-            type="date"
-            name="deadline"
-            value={goal.deadline}
-            onChange={handleChange}
-            className="w-full rounded-2xl border border-slate-700 bg-slate-800 p-4 text-white outline-none transition focus:border-cyan-500"
-          />
+          <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              onClick={handleClose}
+              disabled={submitting}
+              className="rounded-xl border border-slate-300 px-5 py-3 font-medium text-slate-700 transition hover:bg-slate-100 disabled:opacity-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+            >
+              Cancel
+            </button>
 
-        </div>
-
-        {/* Buttons */}
-
-        <div className="flex justify-end gap-4">
-
-          <button
-            onClick={onClose}
-            className="rounded-xl border border-slate-700 px-6 py-3 text-slate-300 transition hover:bg-slate-800"
-          >
-            Cancel
-          </button>
-
-          <button
-            onClick={handleSave}
-            className="rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-6 py-3 font-semibold text-white transition hover:scale-105"
-          >
-            Save Goal
-          </button>
-
-        </div>
-
-      </motion.div>
-
+            <button
+              type="submit"
+              disabled={submitting}
+              className="flex min-w-36 items-center justify-center rounded-xl bg-cyan-500 px-5 py-3 font-semibold text-white transition hover:bg-cyan-600 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {submitting ? "Creating..." : "Create Goal"}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

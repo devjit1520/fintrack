@@ -1,5 +1,9 @@
 import {useEffect, useState } from "react";
-import { Outlet } from "react-router-dom";
+import {
+  AnimatePresence,
+} from "framer-motion";
+import { Outlet , useLocation, } from "react-router-dom";
+import PageTransition from "../components/common/PageTransition";
 
 import GlobalSearch from "../components/search/GlobalSearch";
 
@@ -10,6 +14,7 @@ import TopHeader from "../components/layout/TopHeader";
 function MainLayout() {
  const [sidebarOpen, setSidebarOpen] = useState(false);
 const [searchOpen, setSearchOpen] = useState(false);
+const location = useLocation();
 
   useEffect(() => {
 
@@ -53,9 +58,16 @@ const [searchOpen, setSearchOpen] = useState(false);
     openSearch={() => setSearchOpen(true)}
 />
 
-        <main className="min-h-screen p-4 md:p-6 lg:p-8">
-          <Outlet />
-        </main>
+<main className="min-h-screen w-full min-w-0 overflow-x-hidden p-2">
+  <AnimatePresence
+    mode="wait"
+    initial={false}
+  >
+    <PageTransition key={location.pathname}>
+      <Outlet />
+    </PageTransition>
+  </AnimatePresence>
+</main>
 
       </div>
 <GlobalSearch
