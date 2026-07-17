@@ -1,11 +1,14 @@
 import {
+  AlertCircle,
   BriefcaseBusiness,
+  CheckCircle2,
   Globe2,
   Mail,
   MapPin,
   Phone,
   RotateCcw,
   Save,
+  Sparkles,
   UserRound,
 } from "lucide-react";
 
@@ -50,26 +53,29 @@ function createEmptyErrors() {
   };
 }
 
-function getProfileFormData(profile = {}) {
+function getProfileFormData(
+  profile = {}
+) {
   return {
-    firstName: profile.firstName || "",
-    lastName: profile.lastName || "",
+    firstName:
+      profile.firstName || "",
+    lastName:
+      profile.lastName || "",
     role: profile.role || "",
     email: profile.email || "",
     phone: profile.phone || "",
     city: profile.city || "",
     state: profile.state || "",
-    country: profile.country || "",
-    website: profile.website || "",
+    country:
+      profile.country || "",
+    website:
+      profile.website || "",
     bio: profile.bio || "",
   };
 }
 
 /* =========================================================
    FORM FIELD
-
-   Keep this component OUTSIDE PersonalInfoCard.
-   Otherwise the input remounts after every keystroke.
 ========================================================= */
 
 function FormField({
@@ -87,17 +93,43 @@ function FormField({
     <div className="min-w-0">
       <label
         htmlFor={name}
-        className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300"
+        className="
+          mb-2
+          block
+          text-xs
+          font-bold
+          uppercase
+          tracking-[0.08em]
+          text-slate-500
+          dark:text-slate-400
+        "
       >
         {label}
       </label>
 
       <div className="relative">
-        <Icon
-          size={17}
-          aria-hidden="true"
-          className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-        />
+        <div
+          className={`
+            pointer-events-none
+            absolute
+            left-3.5
+            top-1/2
+            flex
+            h-8
+            w-8
+            -translate-y-1/2
+            items-center
+            justify-center
+            rounded-lg
+            ${
+              error
+                ? "bg-rose-500/10 text-rose-500"
+                : "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400"
+            }
+          `}
+        >
+          <Icon size={15} />
+        </div>
 
         <input
           id={name}
@@ -107,36 +139,44 @@ function FormField({
           onChange={onChange}
           placeholder={placeholder}
           autoComplete={autoComplete}
-          aria-invalid={Boolean(error)}
+          aria-invalid={
+            Boolean(error)
+          }
           className={`
+            h-13
             w-full
-            rounded-xl
+            rounded-2xl
             border
-            bg-white
+            bg-slate-50/80
             py-3
-            pl-11
+            pl-14
             pr-4
             text-sm
-            text-slate-900
+            text-slate-950
             outline-none
             transition
+            duration-200
             placeholder:text-slate-400
+            hover:bg-white
+            focus:bg-white
             focus:ring-4
-            dark:bg-slate-950
+            dark:bg-slate-950/40
             dark:text-white
+            dark:hover:bg-slate-950/60
+            dark:focus:bg-slate-950/70
             ${
               error
                 ? `
                   border-rose-500
                   focus:border-rose-500
                   focus:ring-rose-500/10
-                  dark:border-rose-500
                 `
                 : `
                   border-slate-200
+                  hover:border-cyan-500/30
                   focus:border-cyan-500
                   focus:ring-cyan-500/10
-                  dark:border-slate-700
+                  dark:border-white/10
                 `
             }
           `}
@@ -146,8 +186,18 @@ function FormField({
       {error && (
         <p
           role="alert"
-          className="mt-2 text-sm text-rose-500"
+          className="
+            mt-2
+            flex
+            items-center
+            gap-1.5
+            text-xs
+            font-medium
+            text-rose-500
+          "
         >
+          <AlertCircle size={13} />
+
           {error}
         </p>
       )}
@@ -156,7 +206,87 @@ function FormField({
 }
 
 /* =========================================================
-   MAIN COMPONENT
+   FORM SECTION
+========================================================= */
+
+function FormSection({
+  icon: Icon,
+  title,
+  description,
+  children,
+}) {
+  return (
+    <div
+      className="
+        rounded-3xl
+        border
+        border-slate-200/80
+        bg-slate-50/60
+        p-5
+        dark:border-white/10
+        dark:bg-slate-950/25
+        sm:p-6
+      "
+    >
+      <div
+        className="
+          mb-5
+          flex
+          items-start
+          gap-3
+        "
+      >
+        <div
+          className="
+            flex
+            h-10
+            w-10
+            shrink-0
+            items-center
+            justify-center
+            rounded-xl
+            bg-gradient-to-br
+            from-cyan-500/15
+            to-blue-500/10
+            text-cyan-600
+            dark:text-cyan-400
+          "
+        >
+          <Icon size={18} />
+        </div>
+
+        <div>
+          <h3
+            className="
+              font-bold
+              text-slate-950
+              dark:text-white
+            "
+          >
+            {title}
+          </h3>
+
+          <p
+            className="
+              mt-1
+              text-xs
+              leading-5
+              text-slate-500
+              dark:text-slate-400
+            "
+          >
+            {description}
+          </p>
+        </div>
+      </div>
+
+      {children}
+    </div>
+  );
+}
+
+/* =========================================================
+   PERSONAL INFORMATION CARD
 ========================================================= */
 
 function PersonalInfoCard() {
@@ -184,12 +314,9 @@ function PersonalInfoCard() {
   const [isSaving, setIsSaving] =
     useState(false);
 
-  /* =======================================================
-     PROFILE VALUES
-  ======================================================= */
-
   const savedProfileData = useMemo(
-    () => getProfileFormData(profile),
+    () =>
+      getProfileFormData(profile),
     [
       profile.firstName,
       profile.lastName,
@@ -204,13 +331,10 @@ function PersonalInfoCard() {
     ]
   );
 
-  /*
-    This runs only when the actual saved profile changes.
-    It does not run after every form keystroke.
-  */
-
   useEffect(() => {
-    setFormData(savedProfileData);
+    setFormData(
+      savedProfileData
+    );
   }, [savedProfileData]);
 
   useEffect(() => {
@@ -224,45 +348,45 @@ function PersonalInfoCard() {
       }, 2500);
 
     return () => {
-      window.clearTimeout(timeoutId);
+      window.clearTimeout(
+        timeoutId
+      );
     };
   }, [saved]);
 
-  /* =======================================================
-     CHANGE DETECTION
-  ======================================================= */
+  const hasChanges = useMemo(
+    () =>
+      Object.keys(
+        EMPTY_FORM
+      ).some(
+        (fieldName) =>
+          formData[fieldName] !==
+          savedProfileData[fieldName]
+      ),
+    [
+      formData,
+      savedProfileData,
+    ]
+  );
 
-  const hasChanges = useMemo(() => {
-    return Object.keys(EMPTY_FORM).some(
-      (fieldName) =>
-        formData[fieldName] !==
-        savedProfileData[fieldName]
-    );
-  }, [
-    formData,
-    savedProfileData,
-  ]);
-
-  /* =======================================================
-     INPUT HANDLER
-  ======================================================= */
-
-  const handleChange = (event) => {
+  const handleChange = (
+    event
+  ) => {
     const {
       name,
       value,
     } = event.target;
 
     setFormData(
-      (currentFormData) => ({
-        ...currentFormData,
+      (current) => ({
+        ...current,
         [name]: value,
       })
     );
 
     setErrors(
-      (currentErrors) => ({
-        ...currentErrors,
+      (current) => ({
+        ...current,
         [name]: "",
       })
     );
@@ -271,20 +395,20 @@ function PersonalInfoCard() {
     setSaveError("");
   };
 
-  /* =======================================================
-     VALIDATION
-  ======================================================= */
-
   const validateForm = () => {
     const nextErrors =
       createEmptyErrors();
 
-    if (!formData.firstName.trim()) {
+    if (
+      !formData.firstName.trim()
+    ) {
       nextErrors.firstName =
         "First name is required.";
     }
 
-    if (!formData.lastName.trim()) {
+    if (
+      !formData.lastName.trim()
+    ) {
       nextErrors.lastName =
         "Last name is required.";
     }
@@ -321,7 +445,9 @@ function PersonalInfoCard() {
         "City is required.";
     }
 
-    if (!formData.country.trim()) {
+    if (
+      !formData.country.trim()
+    ) {
       nextErrors.country =
         "Country is required.";
     }
@@ -337,7 +463,8 @@ function PersonalInfoCard() {
     }
 
     if (
-      formData.bio.trim().length > 300
+      formData.bio.trim()
+        .length > 300
     ) {
       nextErrors.bio =
         "Bio cannot exceed 300 characters.";
@@ -350,11 +477,9 @@ function PersonalInfoCard() {
     ).some(Boolean);
   };
 
-  /* =======================================================
-     SAVE
-  ======================================================= */
-
-  const handleSubmit = async (event) => {
+  const handleSubmit = async (
+    event
+  ) => {
     event.preventDefault();
 
     if (
@@ -396,46 +521,56 @@ function PersonalInfoCard() {
       const country =
         formData.country.trim();
 
-      await Promise.resolve(
-        updateProfile({
-          firstName,
-          lastName,
-
-          name: [
+      const result =
+        await Promise.resolve(
+          updateProfile({
             firstName,
             lastName,
-          ]
-            .filter(Boolean)
-            .join(" "),
 
-          role:
-            formData.role.trim(),
+            name: [
+              firstName,
+              lastName,
+            ]
+              .filter(Boolean)
+              .join(" "),
 
-          email:
-            formData.email.trim(),
+            role:
+              formData.role.trim(),
 
-          phone:
-            formData.phone.trim(),
+            email:
+              formData.email.trim(),
 
-          city,
-          state,
-          country,
+            phone:
+              formData.phone.trim(),
 
-          location: [
             city,
             state,
             country,
-          ]
-            .filter(Boolean)
-            .join(", "),
 
-          website:
-            formData.website.trim(),
+            location: [
+              city,
+              state,
+              country,
+            ]
+              .filter(Boolean)
+              .join(", "),
 
-          bio:
-            formData.bio.trim(),
-        })
-      );
+            website:
+              formData.website.trim(),
+
+            bio:
+              formData.bio.trim(),
+          })
+        );
+
+      if (
+        result?.success === false
+      ) {
+        throw new Error(
+          result.error ||
+            "Unable to save profile."
+        );
+      }
 
       setSaved(true);
     } catch (error) {
@@ -453,13 +588,15 @@ function PersonalInfoCard() {
     }
   };
 
-  /* =======================================================
-     RESET
-  ======================================================= */
-
   const handleReset = () => {
-    setFormData(savedProfileData);
-    setErrors(createEmptyErrors());
+    setFormData(
+      savedProfileData
+    );
+
+    setErrors(
+      createEmptyErrors()
+    );
+
     setSaved(false);
     setSaveError("");
   };
@@ -471,187 +608,376 @@ function PersonalInfoCard() {
         noValidate
         className="space-y-6"
       >
-        <div className="grid gap-5 md:grid-cols-2">
-          <FormField
-            label="First Name"
-            name="firstName"
-            icon={UserRound}
-            placeholder="Enter first name"
-            autoComplete="given-name"
-            value={formData.firstName}
-            error={errors.firstName}
-            onChange={handleChange}
-          />
+        {/* Information banner */}
 
-          <FormField
-            label="Last Name"
-            name="lastName"
-            icon={UserRound}
-            placeholder="Enter last name"
-            autoComplete="family-name"
-            value={formData.lastName}
-            error={errors.lastName}
-            onChange={handleChange}
-          />
+        <div
+          className="
+            flex
+            flex-col
+            gap-4
+            rounded-2xl
+            border
+            border-cyan-500/20
+            bg-gradient-to-r
+            from-cyan-500/[0.08]
+            via-blue-500/[0.05]
+            to-violet-500/[0.08]
+            p-4
+            sm:flex-row
+            sm:items-center
+            sm:justify-between
+          "
+        >
+          <div className="flex items-center gap-3">
+            <div
+              className="
+                flex
+                h-10
+                w-10
+                shrink-0
+                items-center
+                justify-center
+                rounded-xl
+                bg-cyan-500/10
+                text-cyan-600
+                dark:text-cyan-400
+              "
+            >
+              <Sparkles size={18} />
+            </div>
 
-          <FormField
-            label="Profession"
-            name="role"
-            icon={BriefcaseBusiness}
-            placeholder="Frontend Developer"
-            autoComplete="organization-title"
-            value={formData.role}
-            error={errors.role}
-            onChange={handleChange}
-          />
+            <div>
+              <p
+                className="
+                  text-sm
+                  font-bold
+                  text-slate-950
+                  dark:text-white
+                "
+              >
+                Keep your profile current
+              </p>
 
-          <FormField
-            label="Email"
-            name="email"
-            type="email"
-            icon={Mail}
-            placeholder="name@example.com"
-            autoComplete="email"
-            value={formData.email}
-            error={errors.email}
-            onChange={handleChange}
-          />
+              <p
+                className="
+                  mt-0.5
+                  text-xs
+                  text-slate-500
+                  dark:text-slate-400
+                "
+              >
+                These details appear throughout your FinTrack account.
+              </p>
+            </div>
+          </div>
 
-          <FormField
-            label="Phone"
-            name="phone"
-            type="tel"
-            icon={Phone}
-            placeholder="+91 9876543210"
-            autoComplete="tel"
-            value={formData.phone}
-            error={errors.phone}
-            onChange={handleChange}
-          />
+          <span
+            className={`
+              inline-flex
+              w-fit
+              items-center
+              gap-2
+              rounded-full
+              px-3
+              py-1.5
+              text-xs
+              font-bold
+              ${
+                hasChanges
+                  ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                  : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+              }
+            `}
+          >
+            {hasChanges ? (
+              <AlertCircle size={14} />
+            ) : (
+              <CheckCircle2
+                size={14}
+              />
+            )}
 
-          <FormField
-            label="Portfolio Website"
-            name="website"
-            type="url"
-            icon={Globe2}
-            placeholder="https://yourportfolio.com"
-            autoComplete="url"
-            value={formData.website}
-            error={errors.website}
-            onChange={handleChange}
-          />
+            {hasChanges
+              ? "Unsaved changes"
+              : "Profile up to date"}
+          </span>
+        </div>
 
-          <FormField
-            label="City"
-            name="city"
-            icon={MapPin}
-            placeholder="Kolkata"
-            autoComplete="address-level2"
-            value={formData.city}
-            error={errors.city}
-            onChange={handleChange}
-          />
+        {/* Identity */}
 
-          <FormField
-            label="State"
-            name="state"
-            icon={MapPin}
-            placeholder="West Bengal"
-            autoComplete="address-level1"
-            value={formData.state}
-            error={errors.state}
-            onChange={handleChange}
-          />
+        <FormSection
+          icon={UserRound}
+          title="Identity & contact"
+          description="Update your name, profession and contact information."
+        >
+          <div
+            className="
+              grid
+              gap-5
+              md:grid-cols-2
+              xl:grid-cols-3
+            "
+          >
+            <FormField
+              label="First Name"
+              name="firstName"
+              icon={UserRound}
+              placeholder="Enter first name"
+              autoComplete="given-name"
+              value={
+                formData.firstName
+              }
+              error={
+                errors.firstName
+              }
+              onChange={handleChange}
+            />
 
-          <div className="md:col-span-2">
+            <FormField
+              label="Last Name"
+              name="lastName"
+              icon={UserRound}
+              placeholder="Enter last name"
+              autoComplete="family-name"
+              value={
+                formData.lastName
+              }
+              error={
+                errors.lastName
+              }
+              onChange={handleChange}
+            />
+
+            <FormField
+              label="Profession"
+              name="role"
+              icon={
+                BriefcaseBusiness
+              }
+              placeholder="Frontend Developer"
+              autoComplete="organization-title"
+              value={formData.role}
+              error={errors.role}
+              onChange={handleChange}
+            />
+
+            <FormField
+              label="Email"
+              name="email"
+              type="email"
+              icon={Mail}
+              placeholder="name@example.com"
+              autoComplete="email"
+              value={formData.email}
+              error={errors.email}
+              onChange={handleChange}
+            />
+
+            <FormField
+              label="Phone"
+              name="phone"
+              type="tel"
+              icon={Phone}
+              placeholder="+91 9876543210"
+              autoComplete="tel"
+              value={formData.phone}
+              error={errors.phone}
+              onChange={handleChange}
+            />
+
+            <FormField
+              label="Portfolio Website"
+              name="website"
+              type="url"
+              icon={Globe2}
+              placeholder="https://yourportfolio.com"
+              autoComplete="url"
+              value={
+                formData.website
+              }
+              error={errors.website}
+              onChange={handleChange}
+            />
+          </div>
+        </FormSection>
+
+        {/* Location */}
+
+        <FormSection
+          icon={MapPin}
+          title="Location"
+          description="Add your current city, state and country."
+        >
+          <div
+            className="
+              grid
+              gap-5
+              md:grid-cols-3
+            "
+          >
+            <FormField
+              label="City"
+              name="city"
+              icon={MapPin}
+              placeholder="Kolkata"
+              autoComplete="address-level2"
+              value={formData.city}
+              error={errors.city}
+              onChange={handleChange}
+            />
+
+            <FormField
+              label="State"
+              name="state"
+              icon={MapPin}
+              placeholder="West Bengal"
+              autoComplete="address-level1"
+              value={formData.state}
+              error={errors.state}
+              onChange={handleChange}
+            />
+
             <FormField
               label="Country"
               name="country"
               icon={MapPin}
               placeholder="India"
               autoComplete="country-name"
-              value={formData.country}
+              value={
+                formData.country
+              }
               error={errors.country}
               onChange={handleChange}
             />
           </div>
-        </div>
+        </FormSection>
 
         {/* Bio */}
 
-        <div>
-          <label
-            htmlFor="bio"
-            className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300"
-          >
-            Bio
-          </label>
+        <FormSection
+          icon={BriefcaseBusiness}
+          title="Professional summary"
+          description="Write a concise introduction about your experience and skills."
+        >
+          <div>
+            <textarea
+              id="bio"
+              name="bio"
+              rows={5}
+              maxLength={300}
+              value={formData.bio}
+              onChange={handleChange}
+              placeholder="Write a short professional description..."
+              className={`
+                w-full
+                resize-none
+                rounded-2xl
+                border
+                bg-white
+                px-4
+                py-3.5
+                text-sm
+                leading-7
+                text-slate-950
+                outline-none
+                transition
+                placeholder:text-slate-400
+                focus:ring-4
+                dark:bg-slate-950/50
+                dark:text-white
+                ${
+                  errors.bio
+                    ? `
+                      border-rose-500
+                      focus:border-rose-500
+                      focus:ring-rose-500/10
+                    `
+                    : `
+                      border-slate-200
+                      hover:border-cyan-500/30
+                      focus:border-cyan-500
+                      focus:ring-cyan-500/10
+                      dark:border-white/10
+                    `
+                }
+              `}
+            />
 
-          <textarea
-            id="bio"
-            name="bio"
-            rows={5}
-            maxLength={300}
-            value={formData.bio}
-            onChange={handleChange}
-            placeholder="Write a short description about yourself..."
-            className={`
-              w-full
-              resize-none
-              rounded-xl
-              border
-              bg-white
-              px-4
-              py-3
-              text-sm
-              text-slate-900
-              outline-none
-              transition
-              placeholder:text-slate-400
-              focus:ring-4
-              dark:bg-slate-950
-              dark:text-white
-              ${
-                errors.bio
-                  ? `
-                    border-rose-500
-                    focus:border-rose-500
-                    focus:ring-rose-500/10
-                  `
-                  : `
-                    border-slate-200
-                    focus:border-cyan-500
-                    focus:ring-cyan-500/10
-                    dark:border-slate-700
-                  `
-              }
-            `}
-          />
+            <div
+              className="
+                mt-2
+                flex
+                items-center
+                justify-between
+                gap-4
+                text-xs
+                text-slate-500
+                dark:text-slate-400
+              "
+            >
+              <span>
+                Keep it clear and professional.
+              </span>
 
-          <div className="mt-2 flex justify-between gap-4 text-xs text-slate-500 dark:text-slate-400">
-            <span>
-              Add a brief professional introduction.
-            </span>
+              <span
+                className={
+                  formData.bio.length >
+                  270
+                    ? "font-bold text-amber-500"
+                    : ""
+                }
+              >
+                {formData.bio.length}/300
+              </span>
+            </div>
 
-            <span>
-              {formData.bio.length}/300
-            </span>
+            {errors.bio && (
+              <p
+                className="
+                  mt-2
+                  flex
+                  items-center
+                  gap-1.5
+                  text-xs
+                  font-medium
+                  text-rose-500
+                "
+              >
+                <AlertCircle
+                  size={13}
+                />
+
+                {errors.bio}
+              </p>
+            )}
           </div>
+        </FormSection>
 
-          {errors.bio && (
-            <p className="mt-2 text-sm text-rose-500">
-              {errors.bio}
-            </p>
-          )}
-        </div>
-
-        {/* Messages */}
+        {/* Feedback messages */}
 
         {saved && (
           <div
             role="status"
-            className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm font-medium text-emerald-700 dark:text-emerald-400"
+            className="
+              flex
+              items-center
+              gap-3
+              rounded-2xl
+              border
+              border-emerald-500/20
+              bg-emerald-500/10
+              px-4
+              py-3
+              text-sm
+              font-medium
+              text-emerald-700
+              dark:text-emerald-400
+            "
           >
+            <CheckCircle2
+              size={18}
+            />
+
             Profile saved successfully.
           </div>
         )}
@@ -659,51 +985,185 @@ function PersonalInfoCard() {
         {saveError && (
           <div
             role="alert"
-            className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm font-medium text-rose-700 dark:text-rose-400"
+            className="
+              flex
+              items-center
+              gap-3
+              rounded-2xl
+              border
+              border-rose-500/20
+              bg-rose-500/10
+              px-4
+              py-3
+              text-sm
+              font-medium
+              text-rose-700
+              dark:text-rose-400
+            "
           >
+            <AlertCircle size={18} />
+
             {saveError}
           </div>
         )}
 
-        {/* Buttons */}
+        {/* Actions */}
 
-        <div className="flex flex-col-reverse gap-3 border-t border-slate-200 pt-5 dark:border-slate-800 sm:flex-row sm:justify-end">
-          <button
-            type="button"
-            onClick={handleReset}
-            disabled={
-              !hasChanges ||
-              isSaving
-            }
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 px-5 py-3 font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+        <div
+          className="
+            flex
+            flex-col-reverse
+            gap-3
+            rounded-2xl
+            border
+            border-slate-200/80
+            bg-slate-50/70
+            p-4
+            dark:border-white/10
+            dark:bg-slate-950/25
+            sm:flex-row
+            sm:items-center
+            sm:justify-between
+          "
+        >
+          <p
+            className="
+              text-xs
+              leading-5
+              text-slate-500
+              dark:text-slate-400
+            "
           >
-            <RotateCcw size={17} />
+            Save changes to update your profile header and account information.
+          </p>
 
-            Reset
-          </button>
-
-          <button
-            type="submit"
-            disabled={
-              !hasChanges ||
-              isSaving
-            }
-            className="inline-flex min-w-40 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-3 font-semibold text-white shadow-lg shadow-cyan-500/20 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+          <div
+            className="
+              flex
+              flex-col-reverse
+              gap-3
+              sm:flex-row
+            "
           >
-            {isSaving ? (
-              <>
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+            <button
+              type="button"
+              onClick={handleReset}
+              disabled={
+                !hasChanges ||
+                isSaving
+              }
+              className="
+                inline-flex
+                items-center
+                justify-center
+                gap-2
+                rounded-xl
+                border
+                border-slate-300
+                bg-white
+                px-5
+                py-3
+                font-semibold
+                text-slate-700
+                transition
+                hover:bg-slate-100
+                disabled:cursor-not-allowed
+                disabled:opacity-50
+                dark:border-white/10
+                dark:bg-white/[0.04]
+                dark:text-slate-200
+                dark:hover:bg-white/[0.07]
+              "
+            >
+              <RotateCcw size={17} />
 
-                Saving...
-              </>
-            ) : (
-              <>
-                <Save size={17} />
+              Reset
+            </button>
 
-                Save Changes
-              </>
-            )}
-          </button>
+            <button
+              type="submit"
+              disabled={
+                !hasChanges ||
+                isSaving
+              }
+              className="
+                group
+                relative
+                inline-flex
+                min-w-44
+                items-center
+                justify-center
+                gap-2
+                overflow-hidden
+                rounded-xl
+                bg-gradient-to-r
+                from-cyan-500
+                via-blue-600
+                to-violet-600
+                px-5
+                py-3
+                font-bold
+                text-white
+                shadow-lg
+                shadow-cyan-500/20
+                transition
+                hover:-translate-y-0.5
+                hover:shadow-xl
+                hover:shadow-blue-500/25
+                disabled:cursor-not-allowed
+                disabled:opacity-60
+                disabled:hover:translate-y-0
+              "
+            >
+              <span
+                className="
+                  absolute
+                  inset-0
+                  -translate-x-full
+                  bg-gradient-to-r
+                  from-transparent
+                  via-white/25
+                  to-transparent
+                  transition-transform
+                  duration-700
+                  group-hover:translate-x-full
+                "
+              />
+
+              <span
+                className="
+                  relative
+                  flex
+                  items-center
+                  gap-2
+                "
+              >
+                {isSaving ? (
+                  <>
+                    <span
+                      className="
+                        h-4
+                        w-4
+                        animate-spin
+                        rounded-full
+                        border-2
+                        border-white
+                        border-t-transparent
+                      "
+                    />
+
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save size={17} />
+
+                    Save Changes
+                  </>
+                )}
+              </span>
+            </button>
+          </div>
         </div>
       </form>
     </ProfileCard>

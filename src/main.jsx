@@ -16,6 +16,8 @@ import GoalProvider from "./context/GoalContext";
 
 import ErrorBoundary from "./components/common/ErrorBoundary";
 
+import NotificationProvider from "./context/NotificationContext";
+
 ReactDOM.createRoot(
   document.getElementById("root")
 ).render(
@@ -29,7 +31,9 @@ ReactDOM.createRoot(
                 <FinanceProvider>
                   <BudgetProvider>
                     <GoalProvider>
-                      <App />
+                      <NotificationProvider>
+                        <App />
+                      </NotificationProvider>
                     </GoalProvider>
                   </BudgetProvider>
                 </FinanceProvider>

@@ -45,12 +45,12 @@ function BackToTop() {
       }
       className="
         fixed
-        bottom-28
+        bottom-5
         right-8
         z-50
         flex
-        h-14
-        w-14
+        h-12
+        w-12
         items-center
         justify-center
         rounded-full

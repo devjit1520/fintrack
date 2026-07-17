@@ -1,4 +1,5 @@
 import { useState } from "react";
+
 import {
   Activity,
   BarChart3,
@@ -26,6 +27,10 @@ import GoalModal from "../../components/goals/GoalModal";
 import AddTransactionForm from "../../components/transactions/AddTransactionForm";
 import EditTransactionModal from "../../components/transactions/EditTransactionModal";
 import TransactionTable from "../../components/transactions/TransactionTable";
+
+/* =========================================================
+   SECTION HEADER
+========================================================= */
 
 function SectionHeader({
   icon: Icon,
@@ -91,6 +96,10 @@ function SectionHeader({
   );
 }
 
+/* =========================================================
+   DASHBOARD
+========================================================= */
+
 function Dashboard() {
   const [
     editingTransaction,
@@ -109,6 +118,10 @@ function Dashboard() {
     goalModalOpen,
     setGoalModalOpen,
   ] = useState(false);
+
+  /* =======================================================
+     TRANSACTION MODAL
+  ======================================================= */
 
   const openTransactionModal = (
     type = "expense"
@@ -134,14 +147,16 @@ function Dashboard() {
         pb-10
       "
     >
-      {/* Background decorations */}
+      {/* =====================================================
+          BACKGROUND DECORATION
+      ====================================================== */}
 
       <div
         className="
           pointer-events-none
           fixed
           right-0
-          top-2 0
+          top-20
           -z-10
           h-96
           w-96
@@ -166,7 +181,9 @@ function Dashboard() {
         "
       />
 
-      {/* Welcome area */}
+      {/* =====================================================
+          WELCOME
+      ====================================================== */}
 
       <WelcomeBanner
         onAddIncome={() =>
@@ -177,15 +194,21 @@ function Dashboard() {
         }
       />
 
-      {/* Main financial statistics */}
+      {/* =====================================================
+          MAIN STATISTICS
+      ====================================================== */}
 
       <PremiumStats />
 
-      {/* Additional analytics cards */}
+      {/* =====================================================
+          ANALYTICS CARDS
+      ====================================================== */}
 
       <AnalyticsCards />
 
-      {/* Quick actions */}
+      {/* =====================================================
+          QUICK ACTIONS
+      ====================================================== */}
 
       <div className="space-y-5">
         <SectionHeader
@@ -204,7 +227,9 @@ function Dashboard() {
         />
       </div>
 
-      {/* Main analytics area */}
+      {/* =====================================================
+          FINANCIAL ANALYTICS
+      ====================================================== */}
 
       <div className="space-y-5">
         <SectionHeader
@@ -221,11 +246,14 @@ function Dashboard() {
           "
         >
           <ExpenseByCategory />
+
           <MonthlyTrendChart />
         </div>
       </div>
 
-      {/* Transactions overview */}
+      {/* =====================================================
+          TRANSACTIONS
+      ====================================================== */}
 
       <div className="space-y-5">
         <SectionHeader
@@ -266,7 +294,9 @@ function Dashboard() {
         </div>
       </div>
 
-      {/* Budget and goals */}
+      {/* =====================================================
+          BUDGET AND SAVINGS GOALS
+      ====================================================== */}
 
       <div className="space-y-5">
         <SectionHeader
@@ -285,30 +315,22 @@ function Dashboard() {
         >
           <BudgetProgress />
 
-          <SavingsGoal
-            onAddSavings={(goal) => {
-              console.log(
-                "Add savings:",
-                goal
-              );
-            }}
-            onEdit={(goal) => {
-              console.log(
-                "Edit goal:",
-                goal
-              );
-            }}
-            onDelete={(goal) => {
-              console.log(
-                "Delete goal:",
-                goal
-              );
-            }}
-          />
+          {/*
+            SavingsGoal now manages these actions internally:
+
+            - Add Savings
+            - Edit Goal
+            - Delete Goal
+            - DashboardGoalModal
+          */}
+
+          <SavingsGoal />
         </div>
       </div>
 
-      {/* Insights and activity */}
+      {/* =====================================================
+          INSIGHTS AND ACTIVITY
+      ====================================================== */}
 
       <div className="space-y-5">
         <SectionHeader
@@ -326,11 +348,14 @@ function Dashboard() {
           "
         >
           <RecentActivity />
+
           <FinancialInsights />
         </div>
       </div>
 
-      {/* Tips and achievements */}
+      {/* =====================================================
+          TIPS AND ACHIEVEMENTS
+      ====================================================== */}
 
       <div
         className="
@@ -341,10 +366,13 @@ function Dashboard() {
         "
       >
         <FinanceTips />
+
         <Achievements />
       </div>
 
-      {/* Add transaction modal */}
+      {/* =====================================================
+          ADD TRANSACTION MODAL
+      ====================================================== */}
 
       <AddTransactionForm
         open={transactionModalOpen}
@@ -354,7 +382,9 @@ function Dashboard() {
         defaultType={defaultType}
       />
 
-      {/* Add goal modal */}
+      {/* =====================================================
+          CREATE GOAL MODAL
+      ====================================================== */}
 
       <GoalModal
         open={goalModalOpen}
@@ -363,7 +393,9 @@ function Dashboard() {
         }
       />
 
-      {/* Edit transaction modal */}
+      {/* =====================================================
+          EDIT TRANSACTION MODAL
+      ====================================================== */}
 
       {editingTransaction && (
         <EditTransactionModal

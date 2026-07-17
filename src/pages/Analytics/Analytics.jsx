@@ -349,7 +349,7 @@ function Analytics() {
   };
 
   return (
-    <section className="min-w-0 space-y-6">
+    <section className="min-w-0 space-y-6 pt-10">
       {/* Analytics header */}
 
       <SectionReveal>

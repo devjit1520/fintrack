@@ -15,24 +15,27 @@ function ProtectedRoute() {
     isAuthenticated,
   } = useAuth();
 
+  // Wait while Supabase checks the current session.
   if (loading) {
     return (
       <AuthPageLoader message="Checking your session..." />
     );
   }
 
+  // Logged-out users return to the welcome page.
   if (!isAuthenticated) {
     return (
       <Navigate
-        to="/login"
+        to="/"
         replace
         state={{
-          from: location,
+          from: location.pathname,
         }}
       />
     );
   }
 
+  // Logged-in users may access protected pages.
   return <Outlet />;
 }
 

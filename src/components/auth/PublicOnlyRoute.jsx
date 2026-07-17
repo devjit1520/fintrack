@@ -14,14 +14,14 @@ function PublicOnlyRoute() {
 
   if (loading) {
     return (
-      <AuthPageLoader message="Preparing FinTrack..." />
+      <AuthPageLoader message="Checking your session..." />
     );
   }
 
   if (isAuthenticated) {
     return (
       <Navigate
-        to="/"
+        to="/dashboard"
         replace
       />
     );

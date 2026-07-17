@@ -95,7 +95,7 @@ function Transactions() {
     <section className="min-w-0 space-y-6">
       {/* Header */}
 
-      <SectionReveal>
+      <SectionReveal className="pt-10">
         <TransactionHeader
           onAddClick={
             handleOpenAddModal

@@ -62,7 +62,7 @@ function Goals() {
   };
 
   return (
-    <section className="min-w-0 space-y-6">
+    <section className="min-w-0 space-y-6 pt-10">
       {/* Page header */}
       <SectionReveal>
         <GoalHeader onAddClick={handleOpenAddModal} />

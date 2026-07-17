@@ -322,9 +322,10 @@ function WelcomeBanner({
             rounded-3xl
             border
             border-white/60
-            bg-slate-950
+            text-black
+            dark:text-white
+            dark:bg-slate-950
             p-6
-            text-white
             shadow-2xl
             dark:border-slate-700
           "

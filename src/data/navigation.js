@@ -1,47 +1,42 @@
 import {
-  LayoutDashboard,
   ArrowLeftRight,
-  Wallet,
-  Target,
   BarChart3,
-  Settings,
+  LayoutDashboard,
+  Target,
+  WalletCards,
 } from "lucide-react";
 
 export const navigation = [
   {
-    id: 1,
-    title: "Dashboard",
-    path: "/",
+    id: "dashboard",
+    label: "Dashboard",
+    path: "/dashboard",
     icon: LayoutDashboard,
   },
   {
-    id: 2,
-    title: "Transactions",
+    id: "transactions",
+    label: "Transactions",
     path: "/transactions",
     icon: ArrowLeftRight,
   },
   {
-    id: 3,
-    title: "Budget",
+    id: "budget",
+    label: "Budget",
     path: "/budget",
-    icon: Wallet,
+    icon: WalletCards,
   },
   {
-    id: 4,
-    title: "Goals",
+    id: "goals",
+    label: "Goals",
     path: "/goals",
     icon: Target,
   },
   {
-    id: 5,
-    title: "Analytics",
+    id: "analytics",
+    label: "Analytics",
     path: "/analytics",
     icon: BarChart3,
   },
-  // {
-  //   id: 6,
-  //   title: "Settings",
-  //   path: "/settings",
-  //   icon: Settings,
-  // },
 ];
+
+export default navigation;

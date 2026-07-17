@@ -2,7 +2,7 @@ import { Wallet } from "lucide-react";
 
 function Logo() {
   return (
-    <div className="flex items-center gap-3 border-b border-slate-200 dark:border-slate-800 p-5">
+    <div className="flex items-center gap-3  border-slate-200 dark:border-slate-800 p-5">
 
       {/* Logo Icon */}
       <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 shadow-lg shadow-cyan-500/30">

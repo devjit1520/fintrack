@@ -1,45 +1,156 @@
-import { useState } from "react";
-import { Bell } from "lucide-react";
+import {
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+
+import {
+  Bell,
+} from "lucide-react";
 
 import useNotifications from "../../hooks/useNotifications";
 import NotificationPanel from "./NotificationPanel";
 
 function NotificationBell() {
-  const { notifications } = useNotifications();
+  const wrapperRef =
+    useRef(null);
 
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] =
+    useState(false);
 
-  const [items, setItems] = useState(notifications);
+  const {
+    unreadCount,
+  } = useNotifications();
 
-  const clearNotifications = () => {
-    setItems([]);
-  };
+  useEffect(() => {
+    if (!open) {
+      return undefined;
+    }
+
+    const handleOutsideClick = (
+      event
+    ) => {
+      if (
+        wrapperRef.current &&
+        !wrapperRef.current.contains(
+          event.target
+        )
+      ) {
+        setOpen(false);
+      }
+    };
+
+    const handleEscape = (
+      event
+    ) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener(
+      "mousedown",
+      handleOutsideClick
+    );
+
+    document.addEventListener(
+      "keydown",
+      handleEscape
+    );
+
+    return () => {
+      document.removeEventListener(
+        "mousedown",
+        handleOutsideClick
+      );
+
+      document.removeEventListener(
+        "keydown",
+        handleEscape
+      );
+    };
+  }, [open]);
 
   return (
-    <div className="relative text-black/60 dark:text-white">
-
+    <div
+      ref={wrapperRef}
+      className="relative"
+    >
       <button
-        onClick={() => setOpen(!open)}
-        className="relative rounded-xl p-2 transition  hover:bg-slate-800 hover:text-white"
+        type="button"
+        onClick={() =>
+          setOpen(
+            (current) => !current
+          )
+        }
+        aria-label="Open notifications"
+        aria-expanded={open}
+        className={`
+          relative
+          flex
+          h-11
+          w-11
+          items-center
+          justify-center
+          rounded-xl
+          border
+          transition
+          ${
+            open
+              ? `
+                border-cyan-500/40
+                bg-cyan-500/10
+                text-cyan-600
+                dark:text-cyan-400
+              `
+              : `
+                border-transparent
+                text-slate-600
+                hover:border-slate-200
+                hover:bg-slate-100
+                dark:text-slate-300
+                dark:hover:border-slate-700
+                dark:hover:bg-slate-800
+              `
+          }
+        `}
       >
+        <Bell size={21} />
 
-        <Bell size={22} />
-
-        {items.length > 0 && (
-          <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white">
-            {items.length}
+        {unreadCount > 0 && (
+          <span
+            className="
+              absolute
+              -right-1
+              -top-1
+              flex
+              h-5
+              min-w-5
+              items-center
+              justify-center
+              rounded-full
+              bg-red-500
+              px-1
+              text-[10px]
+              font-bold
+              text-white
+              shadow-lg
+              shadow-red-500/30
+            "
+          >
+            {unreadCount > 9
+              ? "9+"
+              : unreadCount}
           </span>
         )}
-
       </button>
 
       <NotificationPanel
         open={open}
-        onClose={() => setOpen(false)}
-        notifications={items}
-        clearNotifications={clearNotifications}
+        onClose={() =>
+          setOpen(false)
+        }
       />
-
     </div>
   );
 }

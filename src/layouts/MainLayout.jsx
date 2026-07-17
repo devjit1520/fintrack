@@ -16,29 +16,51 @@ function MainLayout() {
 const [searchOpen, setSearchOpen] = useState(false);
 const location = useLocation();
 
-  useEffect(() => {
 
-  const handleKey = (e) => {
+useEffect(() => {
+  const handleGlobalSearch = (
+    event
+  ) => {
+    const pressedSearchShortcut =
+      (event.ctrlKey ||
+        event.metaKey) &&
+      event.key.toLowerCase() ===
+        "k";
 
-    if (e.ctrlKey && e.key.toLowerCase() === "k") {
-
-      e.preventDefault();
+    if (
+      pressedSearchShortcut
+    ) {
+      event.preventDefault();
 
       setSearchOpen(true);
-
     }
-
   };
 
-  window.addEventListener("keydown", handleKey);
+  window.addEventListener(
+    "keydown",
+    handleGlobalSearch
+  );
 
-  return () =>
-    window.removeEventListener("keydown", handleKey);
-
+  return () => {
+    window.removeEventListener(
+      "keydown",
+      handleGlobalSearch
+    );
+  };
 }, []);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
+<div
+  className="
+    min-h-screen
+    bg-slate-100
+    text-slate-900
+    transition-colors
+    duration-300
+    dark:bg-slate-950
+    dark:text-slate-100
+  "
+>
 
       {/* Desktop Sidebar */}
       <Sidebar />
@@ -54,25 +76,56 @@ const location = useLocation();
 
         {/* Mobile Header */}
 <TopHeader
-    openSidebar={() => setSidebarOpen(true)}
-    openSearch={() => setSearchOpen(true)}
+  openSidebar={() =>
+    setSidebarOpen(true)
+  }
+  openSearch={() =>
+    setSearchOpen(true)
+  }
 />
 
-<main className="min-h-screen w-full min-w-0 overflow-x-hidden p-2">
+<main
+  className="
+    min-h-screen
+    bg-slate-100
+    transition-colors
+    duration-300
+    dark:bg-slate-950
+    p-2
+  "
+>
   <AnimatePresence
     mode="wait"
     initial={false}
   >
     <PageTransition key={location.pathname}>
-      <Outlet />
+<div
+  className="
+    min-h-screen
+    bg-[#f4f7fb]
+    px-4
+    pb-5
+    transition-colors
+    duration-300
+    dark:bg-[#020617]
+    sm:px-6
+    sm:pb-10
+    lg:px-5
+
+  "
+>
+  <Outlet />
+</div>
     </PageTransition>
   </AnimatePresence>
 </main>
 
       </div>
 <GlobalSearch
-    open={searchOpen}
-    onClose={() => setSearchOpen(false)}
+  open={searchOpen}
+  onClose={() =>
+    setSearchOpen(false)
+  }
 />
 
     </div>

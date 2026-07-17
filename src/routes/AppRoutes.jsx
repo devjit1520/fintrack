@@ -6,6 +6,8 @@ import {
 
 import MainLayout from "../layouts/MainLayout";
 
+import Welcome from "../pages/Welcome/Welcome";
+
 import AuthLayout from "../pages/Auth/AuthLayout";
 import Login from "../pages/Auth/Login";
 import Register from "../pages/Auth/Register";
@@ -15,7 +17,6 @@ import Transactions from "../pages/Transactions/Transactions";
 import Budget from "../pages/Budget/Budget";
 import Goals from "../pages/Goals/Goals";
 import Analytics from "../pages/Analytics/Analytics";
-// import Settings from "../pages/Settings/Settings";
 import Profile from "../pages/Profile/Profile";
 
 import ProtectedRoute from "../components/auth/ProtectedRoute";
@@ -26,8 +27,18 @@ import ErrorBoundary from "../components/common/ErrorBoundary";
 function AppRoutes() {
   return (
     <Routes>
-      {/* Public authentication pages */}
+      {/* =====================================================
+          PUBLIC-ONLY PAGES
+      ====================================================== */}
+
       <Route element={<PublicOnlyRoute />}>
+        {/* First page shown to logged-out users */}
+        <Route
+          path="/"
+          element={<Welcome />}
+        />
+
+        {/* Login and registration layout */}
         <Route element={<AuthLayout />}>
           <Route
             path="/login"
@@ -41,26 +52,29 @@ function AppRoutes() {
         </Route>
       </Route>
 
-      {/* Protected application pages */}
+      {/* =====================================================
+          PROTECTED APPLICATION PAGES
+      ====================================================== */}
+
       <Route element={<ProtectedRoute />}>
         <Route element={<MainLayout />}>
           <Route
-            index
+            path="/dashboard"
             element={<Dashboard />}
           />
 
           <Route
-            path="transactions"
+            path="/transactions"
             element={<Transactions />}
           />
 
           <Route
-            path="budget"
+            path="/budget"
             element={<Budget />}
           />
 
           <Route
-            path="goals"
+            path="/goals"
             element={<Goals />}
           />
 
@@ -73,19 +87,17 @@ function AppRoutes() {
             }
           />
 
-          {/* <Route
-            path="settings"
-            element={<Settings />}
-          /> */}
-
           <Route
-            path="profile"
+            path="/profile"
             element={<Profile />}
           />
         </Route>
       </Route>
 
-      {/* Unknown URL */}
+      {/* =====================================================
+          UNKNOWN URL
+      ====================================================== */}
+
       <Route
         path="*"
         element={
