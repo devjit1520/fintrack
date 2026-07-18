@@ -6,6 +6,7 @@ import {
   useState,
 } from "react";
 
+import useAuth from "../hooks/useAuth";
 import useFinance from "../hooks/useFinance";
 import useBudget from "../hooks/useBudget";
 import useGoal from "../hooks/useGoal";
@@ -13,8 +14,9 @@ import useGoal from "../hooks/useGoal";
 export const NotificationContext =
   createContext(null);
 
-const STORAGE_KEY =
-  "fintrack-notification-state";
+/* =========================================================
+   HELPERS
+========================================================= */
 
 function getSafeNumber(value) {
   const number = Number(value);
@@ -24,40 +26,43 @@ function getSafeNumber(value) {
     : 0;
 }
 
-function getTimestamp(value) {
-  if (!value) {
-    return 0;
-  }
-
-  const timestamp =
-    new Date(value).getTime();
-
-  return Number.isNaN(timestamp)
-    ? 0
-    : timestamp;
+function normalizeIdPart(value) {
+  return String(value ?? "unknown")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
-function readNotificationState() {
-  try {
-    const stored =
-      localStorage.getItem(
-        STORAGE_KEY
-      );
+function getStorageKey(userId) {
+  return `fintrack-notifications-${userId}`;
+}
 
-    if (!stored) {
-      return {
-        readIds: [],
-        dismissedIds: [],
-      };
+function createEmptyState() {
+  return {
+    readIds: [],
+    dismissedIds: [],
+  };
+}
+
+function loadNotificationState(userId) {
+  if (!userId) {
+    return createEmptyState();
+  }
+
+  try {
+    const savedState = localStorage.getItem(
+      getStorageKey(userId)
+    );
+
+    if (!savedState) {
+      return createEmptyState();
     }
 
-    const parsed =
-      JSON.parse(stored);
+    const parsed = JSON.parse(savedState);
 
     return {
-      readIds: Array.isArray(
-        parsed.readIds
-      )
+      readIds: Array.isArray(parsed.readIds)
         ? parsed.readIds
         : [],
 
@@ -69,45 +74,121 @@ function readNotificationState() {
     };
   } catch (error) {
     console.error(
-      "Unable to read notification state:",
+      "Unable to load notification state:",
       error
     );
 
-    return {
-      readIds: [],
-      dismissedIds: [],
-    };
+    return createEmptyState();
   }
 }
+
+function saveNotificationState(
+  userId,
+  nextState
+) {
+  if (!userId) {
+    return;
+  }
+
+  try {
+    localStorage.setItem(
+      getStorageKey(userId),
+      JSON.stringify(nextState)
+    );
+  } catch (error) {
+    console.error(
+      "Unable to save notification state:",
+      error
+    );
+  }
+}
+
+function getTimestamp(value) {
+  const timestamp = new Date(
+    value || 0
+  ).getTime();
+
+  return Number.isNaN(timestamp)
+    ? 0
+    : timestamp;
+}
+
+/* =========================================================
+   PROVIDER
+========================================================= */
 
 function NotificationProvider({
   children,
 }) {
   const {
+    user,
+  } = useAuth();
+
+  const {
     transactions = [],
-  } = useFinance();
+  } = useFinance() || {};
 
   const {
     budgets = [],
-  } = useBudget();
+  } = useBudget() || {};
 
   const {
     goals = [],
-  } = useGoal();
+  } = useGoal() || {};
+
+  const userId = user?.id || "";
 
   const [
     notificationState,
     setNotificationState,
-  ] = useState(
-    readNotificationState
-  );
+  ] = useState(createEmptyState);
 
   /* =======================================================
-     CREATE STABLE NOTIFICATIONS
+     LOAD CURRENT USER'S SAVED STATE
+  ======================================================= */
+
+  useEffect(() => {
+    setNotificationState(
+      loadNotificationState(userId)
+    );
+  }, [userId]);
+
+  /* =======================================================
+     UPDATE AND SAVE STATE
+  ======================================================= */
+
+  const updateNotificationState =
+    useCallback(
+      (updater) => {
+        setNotificationState(
+          (currentState) => {
+            const nextState =
+              typeof updater === "function"
+                ? updater(currentState)
+                : updater;
+
+            saveNotificationState(
+              userId,
+              nextState
+            );
+
+            return nextState;
+          }
+        );
+      },
+      [userId]
+    );
+
+  /* =======================================================
+     GENERATE STABLE NOTIFICATIONS
   ======================================================= */
 
   const generatedNotifications =
     useMemo(() => {
+      if (!userId) {
+        return [];
+      }
+
       const items = [];
 
       /* Latest transactions */
@@ -115,49 +196,59 @@ function NotificationProvider({
       const latestTransactions = [
         ...transactions,
       ]
-        .sort((a, b) => {
-          const first =
-            getTimestamp(
-              a.createdAt ||
-                a.created_at ||
-                a.date
-            );
+        .sort((first, second) => {
+          const firstTime = getTimestamp(
+            first.createdAt ||
+              first.created_at ||
+              first.date
+          );
 
-          const second =
-            getTimestamp(
-              b.createdAt ||
-                b.created_at ||
-                b.date
-            );
+          const secondTime = getTimestamp(
+            second.createdAt ||
+              second.created_at ||
+              second.date
+          );
 
-          return second - first;
+          return secondTime - firstTime;
         })
         .slice(0, 5);
 
       latestTransactions.forEach(
-        (transaction, index) => {
-          const type =
-            transaction.type ===
-            "income"
+        (transaction) => {
+          const transactionType =
+            transaction.type === "income"
               ? "income"
               : "expense";
 
+          /*
+            Use the database ID when available.
+
+            The fallback ID is created from permanent
+            transaction values. It does not change after
+            login or page refresh.
+          */
+
           const fallbackId = [
-            type,
-            transaction.date,
+            transactionType,
+            transaction.title,
             transaction.category,
             transaction.amount,
-            index,
-          ].join("-");
+            transaction.date,
+          ]
+            .map(normalizeIdPart)
+            .join("-");
 
-          items.push({
-            id: `transaction-${
+          const notificationId =
+            `transaction-${
               transaction.id ||
               fallbackId
-            }`,
+            }`;
+
+          items.push({
+            id: notificationId,
 
             title:
-              type === "income"
+              transactionType === "income"
                 ? "Income added"
                 : "Expense added",
 
@@ -167,17 +258,15 @@ function NotificationProvider({
               "Transaction"
             } • ₹${getSafeNumber(
               transaction.amount
-            ).toLocaleString(
-              "en-IN"
-            )}`,
+            ).toLocaleString("en-IN")}`,
 
-            type,
+            type: transactionType,
 
             createdAt:
               transaction.createdAt ||
               transaction.created_at ||
               transaction.date ||
-              new Date().toISOString(),
+              "1970-01-01T00:00:00.000Z",
           });
         }
       );
@@ -189,86 +278,84 @@ function NotificationProvider({
           budget.category ||
           "General";
 
-        const limit =
+        const budgetAmount =
           getSafeNumber(
             budget.amount ??
               budget.limit ??
               budget.budgetAmount
           );
 
-        const spent =
-          transactions
-            .filter(
-              (transaction) =>
-                transaction.type ===
-                  "expense" &&
+        const spent = transactions
+          .filter((transaction) => {
+            return (
+              transaction.type ===
+                "expense" &&
+              String(
+                transaction.category || ""
+              ).toLowerCase() ===
                 String(
-                  transaction.category ||
-                    ""
-                ).toLowerCase() ===
-                  String(
-                    category
-                  ).toLowerCase()
-            )
-            .reduce(
-              (total, transaction) =>
-                total +
-                getSafeNumber(
-                  transaction.amount
-                ),
-              0
+                  category
+                ).toLowerCase()
             );
+          })
+          .reduce(
+            (total, transaction) =>
+              total +
+              getSafeNumber(
+                transaction.amount
+              ),
+            0
+          );
 
         const percentage =
-          limit > 0
-            ? (spent / limit) * 100
+          budgetAmount > 0
+            ? (spent / budgetAmount) *
+              100
             : 0;
 
-        if (percentage >= 80) {
-          const level =
-            percentage >= 100
-              ? "exceeded"
-              : "warning";
-
-          items.push({
-            id: `budget-${
-              budget.id ||
-              category
-            }-${level}`,
-
-            title:
-              percentage >= 100
-                ? "Budget exceeded"
-                : "Budget warning",
-
-            message: `${category} budget is ${percentage.toFixed(
-              0
-            )}% used.`,
-
-            type:
-              percentage >= 100
-                ? "danger"
-                : "warning",
-
-            createdAt:
-              budget.updatedAt ||
-              budget.updated_at ||
-              new Date().toISOString(),
-          });
+        if (percentage < 80) {
+          return;
         }
+
+        const alertLevel =
+          percentage >= 100
+            ? "exceeded"
+            : "warning";
+
+        const budgetId =
+          budget.id ||
+          normalizeIdPart(category);
+
+        items.push({
+          id: `budget-${budgetId}-${alertLevel}`,
+
+          title:
+            percentage >= 100
+              ? "Budget exceeded"
+              : "Budget warning",
+
+          message: `${category} budget is ${percentage.toFixed(
+            0
+          )}% used.`,
+
+          type:
+            percentage >= 100
+              ? "danger"
+              : "warning",
+
+          createdAt:
+            budget.updatedAt ||
+            budget.updated_at ||
+            budget.createdAt ||
+            budget.created_at ||
+            "1970-01-01T00:00:00.000Z",
+        });
       });
 
       /* Completed goals */
 
       goals.forEach((goal) => {
-        const saved =
-          getSafeNumber(
-            goal.savedAmount ??
-              goal.saved_amount ??
-              goal.saved
-          );
-
-        const target =
+        const targetAmount =
           getSafeNumber(
             goal.targetAmount ??
               goal.target_amount ??
@@ -276,71 +363,64 @@ function NotificationProvider({
               goal.amount
           );
 
+        const savedAmount =
+          getSafeNumber(
+            goal.savedAmount ??
+              goal.saved_amount ??
+              goal.saved
+          );
+
         const completed =
-          target > 0 &&
-          saved >= target;
+          targetAmount > 0 &&
+          savedAmount >= targetAmount;
 
-        if (completed) {
-          items.push({
-            id: `goal-${
-              goal.id ||
-              goal.title
-            }-completed`,
-
-            title:
-              "Goal achieved 🎉",
-
-            message:
-              goal.title ||
-              "Savings goal completed.",
-
-            type: "success",
-
-            createdAt:
-              goal.updatedAt ||
-              goal.updated_at ||
-              new Date().toISOString(),
-          });
+        if (!completed) {
+          return;
         }
+
+        const goalId =
+          goal.id ||
+          normalizeIdPart(goal.title);
+
+        items.push({
+          id: `goal-${goalId}-completed`,
+
+          title: "Goal achieved 🎉",
+
+          message:
+            goal.title ||
+            "Savings goal completed.",
+
+          type: "success",
+
+          createdAt:
+            goal.updatedAt ||
+            goal.updated_at ||
+            goal.deadline ||
+            goal.createdAt ||
+            goal.created_at ||
+            "1970-01-01T00:00:00.000Z",
+        });
       });
 
       return items.sort(
-        (a, b) =>
+        (first, second) =>
           getTimestamp(
-            b.createdAt
+            second.createdAt
           ) -
           getTimestamp(
-            a.createdAt
+            first.createdAt
           )
       );
     }, [
+      userId,
       transactions,
       budgets,
       goals,
     ]);
 
   /* =======================================================
-     SAVE READ/DISMISSED STATE
-  ======================================================= */
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify(
-          notificationState
-        )
-      );
-    } catch (error) {
-      console.error(
-        "Unable to save notification state:",
-        error
-      );
-    }
-  }, [notificationState]);
-
-  /* =======================================================
-     DISPLAYED NOTIFICATIONS
+     APPLY READ AND DISMISSED STATE
   ======================================================= */
 
   const notifications =
@@ -374,110 +454,124 @@ function NotificationProvider({
     ]);
 
   const unreadCount =
-    useMemo(
-      () =>
-        notifications.filter(
-          (notification) =>
-            !notification.read
-        ).length,
-      [notifications]
-    );
+    useMemo(() => {
+      return notifications.filter(
+        (notification) =>
+          !notification.read
+      ).length;
+    }, [notifications]);
 
   /* =======================================================
-     ACTIONS
+     MARK ONE AS READ
   ======================================================= */
 
   const markAsRead =
     useCallback(
       (notificationId) => {
-        setNotificationState(
-          (current) => {
+        updateNotificationState(
+          (currentState) => {
             if (
-              current.readIds.includes(
+              currentState.readIds.includes(
                 notificationId
               )
             ) {
-              return current;
+              return currentState;
             }
 
             return {
-              ...current,
+              ...currentState,
 
               readIds: [
-                ...current.readIds,
+                ...currentState.readIds,
                 notificationId,
               ],
             };
           }
         );
       },
-      []
+      [updateNotificationState]
     );
+
+  /* =======================================================
+     MARK ALL AS READ
+  ======================================================= */
 
   const markAllAsRead =
     useCallback(() => {
-      const currentIds =
+      const visibleIds =
         notifications.map(
           (notification) =>
             notification.id
         );
 
-      setNotificationState(
-        (current) => ({
-          ...current,
+      updateNotificationState(
+        (currentState) => ({
+          ...currentState,
 
           readIds: Array.from(
             new Set([
-              ...current.readIds,
-              ...currentIds,
+              ...currentState.readIds,
+              ...visibleIds,
             ])
           ),
         })
       );
-    }, [notifications]);
+    }, [
+      notifications,
+      updateNotificationState,
+    ]);
+
+  /* =======================================================
+     DISMISS ONE
+  ======================================================= */
 
   const dismissNotification =
     useCallback(
       (notificationId) => {
-        setNotificationState(
-          (current) => ({
-            ...current,
+        updateNotificationState(
+          (currentState) => ({
+            ...currentState,
 
-            dismissedIds:
-              Array.from(
-                new Set([
-                  ...current.dismissedIds,
-                  notificationId,
-                ])
-              ),
+            dismissedIds: Array.from(
+              new Set([
+                ...currentState.dismissedIds,
+                notificationId,
+              ])
+            ),
           })
         );
       },
-      []
+      [updateNotificationState]
     );
+
+  /* =======================================================
+     CLEAR ALL
+  ======================================================= */
 
   const clearAll =
     useCallback(() => {
-      const currentIds =
+      const visibleIds =
         notifications.map(
           (notification) =>
             notification.id
         );
 
-      setNotificationState(
-        (current) => ({
-          ...current,
+      updateNotificationState(
+        (currentState) => ({
+          ...currentState,
 
-          dismissedIds:
-            Array.from(
-              new Set([
-                ...current.dismissedIds,
-                ...currentIds,
-              ])
-            ),
+          dismissedIds: Array.from(
+            new Set([
+              ...currentState.dismissedIds,
+              ...visibleIds,
+            ])
+          ),
         })
       );
-    }, [notifications]);
+    }, [
+      notifications,
+      updateNotificationState,
+    ]);
 
   const value = useMemo(
     () => ({

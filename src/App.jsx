@@ -8,6 +8,7 @@ import { Toaster } from "react-hot-toast";
 
 
 import AppRoutes from "./routes/AppRoutes";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 function App() {
   const [loading, setLoading] = useState(true);
@@ -25,6 +26,7 @@ function App() {
     <AnimatedBackground />
 
     <AppRoutes />
+    <SpeedInsights />
 
     <Toaster
   position="top-right"
