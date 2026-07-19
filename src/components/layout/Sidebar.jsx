@@ -1,5 +1,9 @@
 import navigation from "../../data/navigation";
 import SidebarItem from "./SidebarItem";
+import {
+  ShieldCheck,
+
+} from "lucide-react";
 
 function Sidebar() {
   return (
@@ -92,52 +96,88 @@ function Sidebar() {
 
       {/* Bottom project card */}
 
-      {/* <div
-        className="
-          shrink-0
-          border-t
-          border-slate-200
-          p-4
-          dark:border-slate-800
-        "
-      >
-        <div
-          className="
-            rounded-2xl
-            border
-            border-slate-200
-            bg-slate-50
-            p-4
-            dark:border-slate-700
-            dark:bg-slate-900
-          "
-        >
-          <p className="font-bold text-slate-900 dark:text-white">
-            FinTrack Pro
-          </p>
+            <div
+              className="
+                shrink-0
+                border-t
+                border-slate-200
+                p-4
+                dark:border-slate-800
+              "
+            >
+              <div
+                className="
+                  relative
+                  overflow-hidden
+                  rounded-2xl
+                  border
+                  border-cyan-500/15
+                  bg-gradient-to-br
+                  from-cyan-500/[0.09]
+                  via-blue-500/[0.05]
+                  to-violet-500/[0.09]
+                  p-4
+                "
+              >
+                <div
+                  className="
+                    pointer-events-none
+                    absolute
+                    -right-10
+                    -top-10
+                    h-24
+                    w-24
+                    rounded-full
+                    bg-violet-500/15
+                    blur-2xl
+                  "
+                />
 
-          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            React · Tailwind CSS
-          </p>
+                <div className="relative flex items-start gap-3">
+                  <div
+                    className="
+                      flex
+                      h-10
+                      w-10
+                      shrink-0
+                      items-center
+                      justify-center
+                      rounded-xl
+                      bg-emerald-500/10
+                      text-emerald-500
+                    "
+                  >
+                    <ShieldCheck size={18} />
+                  </div>
 
-          <span
-            className="
-              mt-4
-              inline-flex
-              rounded-full
-              bg-cyan-500/10
-              px-3
-              py-1
-              text-xs
-              font-semibold
-              text-cyan-600
-              dark:text-cyan-400
-            "
-          >
-            Portfolio Project
-          </span>
-        </div>
-      </div> */}
+                  <div className="min-w-0">
+                    <p
+                      className="
+                        text-sm
+                        font-bold
+                        text-slate-950
+                        dark:text-white
+                      "
+                    >
+                      FinTrack Pro
+                    </p>
+
+                    <p
+                      className="
+                        mt-1
+                        text-xs
+                        leading-5
+                        text-slate-500
+                        dark:text-slate-400
+                      "
+                    >
+                      Your financial data stays protected and
+                      organized.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
     </aside>
   );
 }
