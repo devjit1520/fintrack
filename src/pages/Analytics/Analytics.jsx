@@ -1,4 +1,6 @@
 import {
+  lazy,
+  Suspense,
   useMemo,
   useState,
 } from "react";
@@ -10,12 +12,6 @@ import AnalyticsRangeControls from "../../components/analytics/AnalyticsRangeCon
 import AnalyticsSummary from "../../components/analytics/AnalyticsSummary";
 import AnalyticsOverview from "../../components/analytics/AnalyticsOverview";
 
-import ExpensePieChart from "../../components/analytics/ExpensePieChart";
-import IncomeExpenseChart from "../../components/analytics/IncomeExpenseChart";
-import MonthlyTrendChart from "../../components/analytics/MonthlyTrendChart";
-import SavingsTrendChart from "../../components/analytics/SavingsTrendChart";
-import CategoryPieChart from "../../components/analytics/CategoryPieChart";
-
 import TopCategories from "../../components/analytics/TopCategories";
 import FinancialHealth from "../../components/analytics/FinancialHealth";
 import SmartInsights from "../../components/analytics/SmartInsights";
@@ -23,17 +19,61 @@ import RecentActivity from "../../components/analytics/RecentActivity";
 import ExportAnalytics from "../../components/analytics/ExportAnalytics";
 
 import SectionReveal from "../../components/common/SectionReveal";
+import ChartSkeleton from "../../components/common/ChartSkeleton";
+import DeferredRender from "../../components/common/DeferredRender";
+
+/* =========================================================
+   LAZY CHARTS
+========================================================= */
+
+const ExpensePieChart = lazy(
+  () =>
+    import(
+      "../../components/analytics/ExpensePieChart"
+    )
+);
+
+const IncomeExpenseChart = lazy(
+  () =>
+    import(
+      "../../components/analytics/IncomeExpenseChart"
+    )
+);
+
+const MonthlyTrendChart = lazy(
+  () =>
+    import(
+      "../../components/analytics/MonthlyTrendChart"
+    )
+);
+
+const SavingsTrendChart = lazy(
+  () =>
+    import(
+      "../../components/analytics/SavingsTrendChart"
+    )
+);
+
+const CategoryPieChart = lazy(
+  () =>
+    import(
+      "../../components/analytics/CategoryPieChart"
+    )
+);
 
 /* =========================================================
    DATE HELPERS
 ========================================================= */
 
 function getDateInputValue(date) {
-  if (!(date instanceof Date)) {
+  if (
+    !(date instanceof Date)
+  ) {
     return "";
   }
 
-  const year = date.getFullYear();
+  const year =
+    date.getFullYear();
 
   const month = String(
     date.getMonth() + 1
@@ -52,7 +92,9 @@ function getTransactionTimestamp(
   const value =
     transaction?.date ||
     transaction?.createdAt ||
-    transaction?.updatedAt;
+    transaction?.created_at ||
+    transaction?.updatedAt ||
+    transaction?.updated_at;
 
   if (!value) {
     return 0;
@@ -107,37 +149,54 @@ function getPresetStartDate(range) {
 }
 
 /* =========================================================
-   COMPONENT
+   CHART SECTION FALLBACK
+========================================================= */
+
+function TwoChartFallback() {
+  return (
+    <div
+      className="
+        grid
+        min-w-0
+        gap-6
+        xl:grid-cols-2
+      "
+    >
+      <ChartSkeleton />
+      <ChartSkeleton />
+    </div>
+  );
+}
+
+/* =========================================================
+   ANALYTICS
 ========================================================= */
 
 function Analytics() {
-  const finance = useFinance() || {};
+  const finance =
+    useFinance() || {};
 
   const {
     transactions:
       rawTransactions = [],
   } = finance;
 
-  const transactions = Array.isArray(
-    rawTransactions
-  )
-    ? rawTransactions
-    : [];
-
-  /* =======================================================
-     RANGE STATE
-  ======================================================= */
+  const transactions =
+    Array.isArray(
+      rawTransactions
+    )
+      ? rawTransactions
+      : [];
 
   const [range, setRange] =
     useState("6m");
 
   const initialStart =
     useMemo(() => {
-      const date =
-        getPresetStartDate("6m");
-
       return getDateInputValue(
-        date
+        getPresetStartDate(
+          "6m"
+        )
       );
     }, []);
 
@@ -158,10 +217,6 @@ function Analytics() {
     customEndDate,
     setCustomEndDate,
   ] = useState(today);
-
-  /* =======================================================
-     RESOLVED DATE RANGE
-  ======================================================= */
 
   const resolvedRange =
     useMemo(() => {
@@ -215,7 +270,8 @@ function Analytics() {
       const presetStart =
         getPresetStartDate(range);
 
-      const presetEnd = new Date();
+      const presetEnd =
+        new Date();
 
       presetEnd.setHours(
         23,
@@ -248,18 +304,14 @@ function Analytics() {
       customEndDate,
     ]);
 
-  /* =======================================================
-     FILTERED TRANSACTIONS
-  ======================================================= */
-
   const filteredTransactions =
     useMemo(() => {
+      if (range === "all") {
+        return transactions;
+      }
+
       return transactions.filter(
         (transaction) => {
-          if (range === "all") {
-            return true;
-          }
-
           const timestamp =
             getTransactionTimestamp(
               transaction
@@ -294,16 +346,14 @@ function Analytics() {
       resolvedRange,
     ]);
 
-  /* =======================================================
-     HANDLERS
-  ======================================================= */
-
   const handleRangeChange = (
     nextRange
   ) => {
     setRange(nextRange);
 
-    if (nextRange === "custom") {
+    if (
+      nextRange === "custom"
+    ) {
       if (!customStartDate) {
         setCustomStartDate(
           initialStart
@@ -320,45 +370,52 @@ function Analytics() {
 
   const handleResetRange = () => {
     setRange("all");
-
     setCustomStartDate(
       initialStart
     );
-
     setCustomEndDate(today);
   };
 
-  /* =======================================================
-     SHARED ANALYTICS PROPS
-  ======================================================= */
+  const analyticsProps =
+    useMemo(
+      () => ({
+        transactions:
+          filteredTransactions,
 
-  const analyticsProps = {
-    transactions:
-      filteredTransactions,
+        allTransactions:
+          transactions,
 
-    allTransactions:
-      transactions,
+        range,
 
-    range,
+        startDate:
+          resolvedRange.startDate,
 
-    startDate:
-      resolvedRange.startDate,
-
-    endDate:
-      resolvedRange.endDate,
-  };
+        endDate:
+          resolvedRange.endDate,
+      }),
+      [
+        filteredTransactions,
+        transactions,
+        range,
+        resolvedRange.startDate,
+        resolvedRange.endDate,
+      ]
+    );
 
   return (
-    <section className="min-w-0 space-y-6 pt-10">
-      {/* Analytics header */}
-
+    <section
+      className="
+        min-w-0
+        space-y-6
+        pt-4
+        sm:pt-6
+      "
+    >
       <SectionReveal>
         <AnalyticsHeader
           {...analyticsProps}
         />
       </SectionReveal>
-
-      {/* Date range controls */}
 
       <SectionReveal delay={0.04}>
         <AnalyticsRangeControls
@@ -390,15 +447,11 @@ function Analytics() {
         />
       </SectionReveal>
 
-      {/* Summary cards */}
-
       <SectionReveal delay={0.07}>
         <AnalyticsSummary
           {...analyticsProps}
         />
       </SectionReveal>
-
-      {/* Financial overview */}
 
       <SectionReveal delay={0.1}>
         <AnalyticsOverview
@@ -408,74 +461,157 @@ function Analytics() {
 
       {/* Primary charts */}
 
-      <div className="grid min-w-0 gap-6 xl:grid-cols-2">
-        <SectionReveal
-          delay={0.12}
-          className="min-w-0"
+      <DeferredRender
+        rootMargin="650px 0px"
+        minHeight={320}
+        fallback={
+          <TwoChartFallback />
+        }
+      >
+        <div
+          className="
+            grid
+            min-w-0
+            gap-6
+            xl:grid-cols-2
+          "
         >
-          <IncomeExpenseChart
-            {...analyticsProps}
-          />
-        </SectionReveal>
+          <SectionReveal
+            delay={0.12}
+            className="min-w-0"
+          >
+            <Suspense
+              fallback={
+                <ChartSkeleton />
+              }
+            >
+              <IncomeExpenseChart
+                {...analyticsProps}
+              />
+            </Suspense>
+          </SectionReveal>
 
-        <SectionReveal
-          delay={0.14}
-          className="min-w-0"
-        >
-          <ExpensePieChart
-            {...analyticsProps}
-          />
-        </SectionReveal>
-      </div>
+          <SectionReveal
+            delay={0.14}
+            className="min-w-0"
+          >
+            <Suspense
+              fallback={
+                <ChartSkeleton />
+              }
+            >
+              <ExpensePieChart
+                {...analyticsProps}
+              />
+            </Suspense>
+          </SectionReveal>
+        </div>
+      </DeferredRender>
 
       {/* Trend charts */}
 
-      <div className="grid min-w-0 gap-6 xl:grid-cols-2">
-        <SectionReveal
-          delay={0.16}
-          className="min-w-0"
+      <DeferredRender
+        rootMargin="650px 0px"
+        minHeight={320}
+        fallback={
+          <TwoChartFallback />
+        }
+      >
+        <div
+          className="
+            grid
+            min-w-0
+            gap-6
+            xl:grid-cols-2
+          "
         >
-          <MonthlyTrendChart
-            {...analyticsProps}
-          />
-        </SectionReveal>
+          <SectionReveal
+            delay={0.08}
+            className="min-w-0"
+          >
+            <Suspense
+              fallback={
+                <ChartSkeleton />
+              }
+            >
+              <MonthlyTrendChart
+                {...analyticsProps}
+              />
+            </Suspense>
+          </SectionReveal>
 
-        <SectionReveal
-          delay={0.18}
-          className="min-w-0"
-        >
-          <SavingsTrendChart
-            {...analyticsProps}
-          />
-        </SectionReveal>
-      </div>
+          <SectionReveal
+            delay={0.1}
+            className="min-w-0"
+          >
+            <Suspense
+              fallback={
+                <ChartSkeleton />
+              }
+            >
+              <SavingsTrendChart
+                {...analyticsProps}
+              />
+            </Suspense>
+          </SectionReveal>
+        </div>
+      </DeferredRender>
 
       {/* Category analytics */}
 
-      <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
-        <SectionReveal
-          delay={0.2}
-          className="min-w-0"
+      <DeferredRender
+        rootMargin="650px 0px"
+        minHeight={320}
+        fallback={
+          <div
+            className="
+              grid
+              min-w-0
+              gap-6
+              xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]
+            "
+          >
+            <ChartSkeleton />
+            <ChartSkeleton />
+          </div>
+        }
+      >
+        <div
+          className="
+            grid
+            min-w-0
+            gap-6
+            xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]
+          "
         >
-          <CategoryPieChart
-            {...analyticsProps}
-          />
-        </SectionReveal>
+          <SectionReveal
+            delay={0.08}
+            className="min-w-0"
+          >
+            <Suspense
+              fallback={
+                <ChartSkeleton />
+              }
+            >
+              <CategoryPieChart
+                {...analyticsProps}
+              />
+            </Suspense>
+          </SectionReveal>
 
-        <SectionReveal
-          delay={0.22}
-          className="min-w-0"
-        >
-          <TopCategories
-            {...analyticsProps}
-          />
-        </SectionReveal>
-      </div>
-
-      {/* Financial health */}
+          <SectionReveal
+            delay={0.1}
+            className="min-w-0"
+          >
+            <TopCategories
+              {...analyticsProps}
+            />
+          </SectionReveal>
+        </div>
+      </DeferredRender>
 
       <SectionReveal
-        delay={0.24}
+        delay={0.1}
         className="min-w-0"
       >
         <FinancialHealth
@@ -483,10 +619,8 @@ function Analytics() {
         />
       </SectionReveal>
 
-      {/* Premium smart insights */}
-
       <SectionReveal
-        delay={0.26}
+        delay={0.12}
         className="min-w-0"
       >
         <SmartInsights
@@ -494,10 +628,8 @@ function Analytics() {
         />
       </SectionReveal>
 
-      {/* Recent activity */}
-
       <SectionReveal
-        delay={0.28}
+        delay={0.14}
         className="min-w-0"
       >
         <RecentActivity
@@ -505,10 +637,8 @@ function Analytics() {
         />
       </SectionReveal>
 
-      {/* Export analytics */}
-
       <SectionReveal
-        delay={0.3}
+        delay={0.16}
         className="min-w-0"
       >
         <ExportAnalytics

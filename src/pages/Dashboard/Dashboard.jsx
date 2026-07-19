@@ -1,4 +1,8 @@
-import { useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useState,
+} from "react";
 
 import {
   Activity,
@@ -12,14 +16,11 @@ import PremiumStats from "../../components/dashboard/PremiumStats";
 import AnalyticsCards from "../../components/dashboard/AnalyticsCards";
 import QuickActions from "../../components/dashboard/QuickActions";
 import RecentTransactions from "../../components/dashboard/RecentTransactions";
-import ExpenseByCategory from "../../components/dashboard/ExpenseByCategory";
 import BudgetProgress from "../../components/dashboard/BudgetProgress";
 import FinancialInsights from "../../components/dashboard/FinancialInsights";
 import FinanceTips from "../../components/dashboard/FinanceTips";
 import Achievements from "../../components/dashboard/Achievements";
 import RecentActivity from "../../components/dashboard/RecentActivity";
-
-import MonthlyTrendChart from "../../components/analytics/MonthlyTrendChart";
 
 import SavingsGoal from "../../components/goals/SavingsGoal";
 import GoalModal from "../../components/goals/GoalModal";
@@ -27,6 +28,27 @@ import GoalModal from "../../components/goals/GoalModal";
 import AddTransactionForm from "../../components/transactions/AddTransactionForm";
 import EditTransactionModal from "../../components/transactions/EditTransactionModal";
 import TransactionTable from "../../components/transactions/TransactionTable";
+
+import ChartSkeleton from "../../components/common/ChartSkeleton";
+import DeferredRender from "../../components/common/DeferredRender";
+
+/* =========================================================
+   LAZY CHART COMPONENTS
+========================================================= */
+
+const ExpenseByCategory = lazy(
+  () =>
+    import(
+      "../../components/dashboard/ExpenseByCategory"
+    )
+);
+
+const MonthlyTrendChart = lazy(
+  () =>
+    import(
+      "../../components/analytics/MonthlyTrendChart"
+    )
+);
 
 /* =========================================================
    SECTION HEADER
@@ -67,7 +89,7 @@ function SectionHeader({
           <Icon size={21} />
         </div>
 
-        <div>
+        <div className="min-w-0">
           <h2
             className="
               text-xl
@@ -111,17 +133,15 @@ function Dashboard() {
     setTransactionModalOpen,
   ] = useState(false);
 
-  const [defaultType, setDefaultType] =
-    useState("expense");
+  const [
+    defaultType,
+    setDefaultType,
+  ] = useState("expense");
 
   const [
     goalModalOpen,
     setGoalModalOpen,
   ] = useState(false);
-
-  /* =======================================================
-     TRANSACTION MODAL
-  ======================================================= */
 
   const openTransactionModal = (
     type = "expense"
@@ -135,21 +155,21 @@ function Dashboard() {
     setTransactionModalOpen(true);
   };
 
-  const closeTransactionModal = () => {
-    setTransactionModalOpen(false);
-  };
+  const closeTransactionModal =
+    () => {
+      setTransactionModalOpen(false);
+    };
 
   return (
     <section
       className="
         relative
+        min-w-0
         space-y-10
         pb-10
       "
     >
-      {/* =====================================================
-          BACKGROUND DECORATION
-      ====================================================== */}
+      {/* Background decoration */}
 
       <div
         className="
@@ -158,11 +178,13 @@ function Dashboard() {
           right-0
           top-20
           -z-10
+          hidden
           h-96
           w-96
           rounded-full
           bg-cyan-500/5
           blur-[140px]
+          lg:block
         "
       />
 
@@ -173,42 +195,34 @@ function Dashboard() {
           bottom-0
           left-72
           -z-10
+          hidden
           h-96
           w-96
           rounded-full
           bg-violet-500/5
           blur-[140px]
+          lg:block
         "
       />
 
-      {/* =====================================================
-          WELCOME
-      ====================================================== */}
-
       <WelcomeBanner
         onAddIncome={() =>
-          openTransactionModal("income")
+          openTransactionModal(
+            "income"
+          )
         }
         onAddExpense={() =>
-          openTransactionModal("expense")
+          openTransactionModal(
+            "expense"
+          )
         }
       />
 
-      {/* =====================================================
-          MAIN STATISTICS
-      ====================================================== */}
-
       <PremiumStats />
-
-      {/* =====================================================
-          ANALYTICS CARDS
-      ====================================================== */}
 
       <AnalyticsCards />
 
-      {/* =====================================================
-          QUICK ACTIONS
-      ====================================================== */}
+      {/* Quick actions */}
 
       <div className="space-y-5">
         <SectionHeader
@@ -227,9 +241,7 @@ function Dashboard() {
         />
       </div>
 
-      {/* =====================================================
-          FINANCIAL ANALYTICS
-      ====================================================== */}
+      {/* Financial analytics */}
 
       <div className="space-y-5">
         <SectionHeader
@@ -238,22 +250,51 @@ function Dashboard() {
           description="Understand how your income and expenses are changing."
         />
 
-        <div
-          className="
-            grid
-            gap-6
-            2xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.35fr)]
-          "
+        <DeferredRender
+          rootMargin="650px 0px"
+          minHeight={320}
+          fallback={
+            <div
+              className="
+                grid
+                min-w-0
+                gap-6
+                2xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.35fr)]
+              "
+            >
+              <ChartSkeleton />
+              <ChartSkeleton />
+            </div>
+          }
         >
-          <ExpenseByCategory />
+          <div
+            className="
+              grid
+              min-w-0
+              gap-6
+              2xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.35fr)]
+            "
+          >
+            <Suspense
+              fallback={
+                <ChartSkeleton />
+              }
+            >
+              <ExpenseByCategory />
+            </Suspense>
 
-          <MonthlyTrendChart />
-        </div>
+            <Suspense
+              fallback={
+                <ChartSkeleton />
+              }
+            >
+              <MonthlyTrendChart />
+            </Suspense>
+          </div>
+        </DeferredRender>
       </div>
 
-      {/* =====================================================
-          TRANSACTIONS
-      ====================================================== */}
+      {/* Transactions */}
 
       <div className="space-y-5">
         <SectionHeader
@@ -265,6 +306,7 @@ function Dashboard() {
         <div
           className="
             grid
+            min-w-0
             gap-6
             2xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.4fr)]
           "
@@ -294,9 +336,7 @@ function Dashboard() {
         </div>
       </div>
 
-      {/* =====================================================
-          BUDGET AND SAVINGS GOALS
-      ====================================================== */}
+      {/* Budget and goals */}
 
       <div className="space-y-5">
         <SectionHeader
@@ -308,29 +348,18 @@ function Dashboard() {
         <div
           className="
             grid
+            min-w-0
             items-start
             gap-6
             2xl:grid-cols-2
           "
         >
           <BudgetProgress />
-
-          {/*
-            SavingsGoal now manages these actions internally:
-
-            - Add Savings
-            - Edit Goal
-            - Delete Goal
-            - DashboardGoalModal
-          */}
-
           <SavingsGoal />
         </div>
       </div>
 
-      {/* =====================================================
-          INSIGHTS AND ACTIVITY
-      ====================================================== */}
+      {/* Insights */}
 
       <div className="space-y-5">
         <SectionHeader
@@ -342,49 +371,41 @@ function Dashboard() {
         <div
           className="
             grid
+            min-w-0
             items-start
             gap-6
             2xl:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]
           "
         >
           <RecentActivity />
-
           <FinancialInsights />
         </div>
       </div>
 
-      {/* =====================================================
-          TIPS AND ACHIEVEMENTS
-      ====================================================== */}
-
       <div
         className="
           grid
+          min-w-0
           items-start
           gap-6
           xl:grid-cols-2
         "
       >
         <FinanceTips />
-
         <Achievements />
       </div>
 
-      {/* =====================================================
-          ADD TRANSACTION MODAL
-      ====================================================== */}
-
       <AddTransactionForm
-        open={transactionModalOpen}
+        open={
+          transactionModalOpen
+        }
         onClose={
           closeTransactionModal
         }
-        defaultType={defaultType}
+        defaultType={
+          defaultType
+        }
       />
-
-      {/* =====================================================
-          CREATE GOAL MODAL
-      ====================================================== */}
 
       <GoalModal
         open={goalModalOpen}
@@ -393,17 +414,15 @@ function Dashboard() {
         }
       />
 
-      {/* =====================================================
-          EDIT TRANSACTION MODAL
-      ====================================================== */}
-
       {editingTransaction && (
         <EditTransactionModal
           transaction={
             editingTransaction
           }
           onClose={() =>
-            setEditingTransaction(null)
+            setEditingTransaction(
+              null
+            )
           }
         />
       )}

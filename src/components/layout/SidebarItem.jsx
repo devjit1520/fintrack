@@ -1,4 +1,7 @@
 import { NavLink } from "react-router-dom";
+import {
+  preloadRoute,
+} from "../../routes/routeModules";
 
 function SidebarItem({
   item,
@@ -6,25 +9,31 @@ function SidebarItem({
 }) {
   const Icon = item.icon;
 
-  /*
-    Dashboard must match only /dashboard.
-    Other pages may stay active for nested routes,
-    such as /goals/edit or /transactions/details.
-  */
-
   const exactMatch =
     item.path === "/dashboard" ||
     item.path === "/";
 
+const prepareRoute = () => {
+  preloadRoute(item.path);
+};
+
   return (
-    <NavLink
-      to={item.path}
-      end={exactMatch}
-      onClick={() => {
-        onClick?.();
-      }}
-      className="group relative block"
-    >
+<NavLink
+  to={item.path}
+  end={exactMatch}
+  onMouseEnter={
+    prepareRoute
+  }
+  onFocus={
+    prepareRoute
+  }
+  onTouchStart={
+    prepareRoute
+  }
+  onClick={() => {
+    onClick?.();
+  }}
+>
       {({ isActive }) => (
         <div
           className={`

@@ -1,47 +1,27 @@
 import { StrictMode } from "react";
-import ReactDOM from "react-dom/client";
+import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
 
 import App from "./App";
+
+import AuthProvider from "./context/AuthContext";
+import { ThemeProvider } from "./context/ThemeContext";
+
 import "./index.css";
 
-import { ThemeProvider } from "./context/ThemeContext";
-import AuthProvider from "./context/AuthContext";
-
-import ActivityProvider from "./context/ActivityContext";
-import ProfileProvider from "./context/ProfileContext";
-import FinanceProvider from "./context/FinanceContext";
-import BudgetProvider from "./context/BudgetContext";
-import GoalProvider from "./context/GoalContext";
-
-import ErrorBoundary from "./components/common/ErrorBoundary";
-
-import NotificationProvider from "./context/NotificationContext";
-
-ReactDOM.createRoot(
+createRoot(
   document.getElementById("root")
 ).render(
   <StrictMode>
-    <ErrorBoundary>
-      <BrowserRouter>
+    <BrowserRouter>
+      <AuthProvider>
         <ThemeProvider>
-          <AuthProvider>
-            <ActivityProvider>
-              <ProfileProvider>
-                <FinanceProvider>
-                  <BudgetProvider>
-                    <GoalProvider>
-                      <NotificationProvider>
-                        <App />
-                      </NotificationProvider>
-                    </GoalProvider>
-                  </BudgetProvider>
-                </FinanceProvider>
-              </ProfileProvider>
-            </ActivityProvider>
-          </AuthProvider>
+          <App />
+
+          <Toaster position="top-right" />
         </ThemeProvider>
-      </BrowserRouter>
-    </ErrorBoundary>
+      </AuthProvider>
+    </BrowserRouter>
   </StrictMode>
 );
