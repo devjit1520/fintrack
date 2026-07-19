@@ -1,26 +1,50 @@
-import {
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
-
-import {
-  motion,
-} from "framer-motion";
+import { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 
 import {
   ArrowDownCircle,
+  ArrowRight,
   ArrowUpCircle,
+  BarChart3,
   CalendarDays,
-  Clock3,
+  PiggyBank,
   Sparkles,
+  Target,
+  TrendingDown,
+  TrendingUp,
   WalletCards,
 } from "lucide-react";
 
-import useProfile from "../../hooks/useProfile";
 import useFinance from "../../hooks/useFinance";
+import useProfile from "../../hooks/useProfile";
 
-function getGreeting(hour) {
+/* =========================================================
+   HELPERS
+========================================================= */
+
+function getSafeNumber(value) {
+  const number = Number(value);
+
+  return Number.isFinite(number)
+    ? number
+    : 0;
+}
+
+function formatCurrency(value) {
+  return new Intl.NumberFormat(
+    "en-IN",
+    {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0,
+    }
+  ).format(getSafeNumber(value));
+}
+
+function getGreeting() {
+  const hour = new Date().getHours();
+
   if (hour < 12) {
     return "Good morning";
   }
@@ -32,86 +56,279 @@ function getGreeting(hour) {
   return "Good evening";
 }
 
-function formatCurrency(value) {
-  return new Intl.NumberFormat(
+function getCurrentDate() {
+  return new Intl.DateTimeFormat(
     "en-IN",
     {
-      style: "currency",
-      currency: "INR",
-      maximumFractionDigits: 0,
+      weekday: "short",
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
     }
-  ).format(Number(value) || 0);
+  ).format(new Date());
 }
+
+/* =========================================================
+   SMALL METRIC CARD
+========================================================= */
+
+function MetricCard({
+  icon: Icon,
+  label,
+  value,
+  helper,
+  iconClasses,
+}) {
+  return (
+    <article
+      className="
+        group
+        relative
+        min-w-0
+        overflow-hidden
+        rounded-2xl
+        border
+        border-slate-200/80
+        bg-white/70
+        p-4
+        backdrop-blur-xl
+        transition
+        duration-300
+        hover:-translate-y-0.5
+        hover:border-cyan-500/25
+        hover:shadow-lg
+        dark:border-white/10
+        dark:bg-white/[0.035]
+      "
+    >
+      <div
+        className="
+          pointer-events-none
+          absolute
+          -right-8
+          -top-8
+          h-20
+          w-20
+          rounded-full
+          bg-cyan-500/5
+          blur-2xl
+        "
+      />
+
+      <div className="relative flex items-start gap-3">
+        <div
+          className={`
+            flex
+            h-10
+            w-10
+            shrink-0
+            items-center
+            justify-center
+            rounded-xl
+            ${iconClasses}
+          `}
+        >
+          <Icon size={18} />
+        </div>
+
+        <div className="min-w-0">
+          <p
+            className="
+              text-[10px]
+              font-bold
+              uppercase
+              tracking-[0.14em]
+              text-slate-500
+              dark:text-slate-400
+            "
+          >
+            {label}
+          </p>
+
+          <p
+            className="
+              mt-1
+              truncate
+              text-lg
+              font-black
+              text-slate-950
+              dark:text-white
+            "
+          >
+            {value}
+          </p>
+
+          {helper && (
+            <p
+              className="
+                mt-1
+                truncate
+                text-[11px]
+                text-slate-500
+                dark:text-slate-400
+              "
+            >
+              {helper}
+            </p>
+          )}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+/* =========================================================
+   WELCOME BANNER
+========================================================= */
 
 function WelcomeBanner({
   onAddIncome,
   onAddExpense,
 }) {
-  const [time, setTime] =
-    useState(new Date());
+  const navigate = useNavigate();
 
-  const { profile } = useProfile();
+  const finance =
+    useFinance() || {};
 
-  const {
-    summary = {},
-  } = useFinance();
+  const profileContext =
+    useProfile() || {};
 
-  useEffect(() => {
-    const timer = window.setInterval(
-      () => {
-        setTime(new Date());
-      },
-      1000
+  const profile =
+    profileContext.profile || {};
+
+  const transactions =
+    Array.isArray(
+      finance.transactions
+    )
+      ? finance.transactions
+      : [];
+
+  const contextSummary =
+    finance.summary || {};
+
+  /* =======================================================
+     CALCULATE FINANCE VALUES
+  ======================================================= */
+
+  const calculatedSummary =
+    useMemo(() => {
+      return transactions.reduce(
+        (totals, transaction) => {
+          const amount =
+            getSafeNumber(
+              transaction.amount
+            );
+
+          if (
+            transaction.type ===
+            "income"
+          ) {
+            totals.income += amount;
+          }
+
+          if (
+            transaction.type ===
+            "expense"
+          ) {
+            totals.expense += amount;
+          }
+
+          return totals;
+        },
+        {
+          income: 0,
+          expense: 0,
+        }
+      );
+    }, [transactions]);
+
+  const totalIncome =
+    getSafeNumber(
+      contextSummary.income
+    ) ||
+    calculatedSummary.income;
+
+  const totalExpense =
+    getSafeNumber(
+      contextSummary.expense
+    ) ||
+    calculatedSummary.expense;
+
+  const summaryBalance =
+    Number(
+      contextSummary.balance
     );
 
-    return () =>
-      window.clearInterval(timer);
-  }, []);
+  const balance =
+    Number.isFinite(
+      summaryBalance
+    )
+      ? summaryBalance
+      : totalIncome -
+        totalExpense;
 
-  const greeting = getGreeting(
-    time.getHours()
-  );
+  const savedAmount =
+    Math.max(
+      getSafeNumber(
+        contextSummary.savings
+      ) || balance,
+      0
+    );
 
-  const firstName =
-    profile?.firstName ||
-    profile?.name
+  const savingsRate =
+    totalIncome > 0
+      ? Math.min(
+          Math.max(
+            Math.round(
+              (savedAmount /
+                totalIncome) *
+                100
+            ),
+            0
+          ),
+          100
+        )
+      : 0;
+
+  /* =======================================================
+     PROFILE INFORMATION
+  ======================================================= */
+
+  const displayName =
+    profile.firstName ||
+    profile.name
       ?.trim()
       .split(" ")[0] ||
-    "there";
+    "FinTrack User";
 
-  const quote = useMemo(() => {
-    const quotes = [
-      "Every small saving builds a stronger financial future.",
-      "Track your money today and build freedom tomorrow.",
-      "Financial discipline creates long-term confidence.",
-      "Smart decisions today create better opportunities tomorrow.",
-      "Consistency is the foundation of financial progress.",
-    ];
+  const greeting =
+    getGreeting();
 
-    return quotes[
-      time.getDate() %
-        quotes.length
-    ];
-  }, [time]);
+  const currentDate =
+    getCurrentDate();
 
-  const balance =
-    Number(summary.balance) || 0;
+  const financeMessage =
+    balance >= 0
+      ? "Your finances are moving in a positive direction."
+      : "Review your recent spending and improve your balance.";
 
   return (
     <motion.section
       initial={{
         opacity: 0,
-        y: 24,
+        y: 16,
       }}
       animate={{
         opacity: 1,
         y: 0,
       }}
       transition={{
-        duration: 0.55,
+        duration: 0.4,
+        ease: "easeOut",
       }}
       className="
         relative
+        min-w-0
         overflow-hidden
         rounded-[32px]
         border
@@ -119,47 +336,50 @@ function WelcomeBanner({
         bg-white
         shadow-xl
         shadow-slate-200/40
-        dark:border-slate-800
-        dark:bg-slate-900
+        dark:border-white/10
+        dark:bg-[#0d172a]
         dark:shadow-black/20
       "
     >
-      {/* Background gradients */}
+      {/* Background effects */}
 
       <div
         className="
-          absolute
-          -right-24
-          -top-28
-          h-96
-          w-96
-          rounded-full
-          bg-cyan-500/15
-          blur-[110px]
-        "
-      />
-
-      <div
-        className="
-          absolute
-          -bottom-28
-          left-1/3
-          h-80
-          w-80
-          rounded-full
-          bg-blue-600/10
-          blur-[110px]
-        "
-      />
-
-      <div
-        className="
+          pointer-events-none
           absolute
           inset-0
           bg-gradient-to-br
-          from-cyan-500/[0.04]
+          from-cyan-500/[0.09]
           via-transparent
-          to-violet-500/[0.05]
+          to-violet-500/[0.1]
+        "
+      />
+
+      <div
+        className="
+          pointer-events-none
+          absolute
+          -right-40
+          -top-40
+          h-96
+          w-96
+          rounded-full
+          bg-cyan-500/10
+          blur-[120px]
+        "
+      />
+
+      <div
+        className="
+          pointer-events-none
+          absolute
+          -bottom-48
+          left-1/3
+          h-96
+          w-96
+          rounded-full
+          bg-violet-500/10
+          blur-[130px]
         "
       />
 
@@ -167,36 +387,96 @@ function WelcomeBanner({
         className="
           relative
           grid
-          gap-8
-          p-6
-          sm:p-8
-          xl:grid-cols-[minmax(0,1.3fr)_minmax(320px,0.7fr)]
-          xl:p-10
+          min-w-0
+          gap-5
+          p-5
+          sm:p-6
+          lg:grid-cols-[minmax(0,1.15fr)_minmax(350px,0.85fr)]
+          lg:p-8
         "
       >
-        {/* Left content */}
+        {/* =================================================
+            LEFT COMMAND AREA
+        ================================================== */}
 
-        <div className="flex flex-col justify-between">
+        <div
+          className="
+            flex
+            min-w-0
+            flex-col
+            justify-between
+            rounded-3xl
+            border
+            border-slate-200/70
+            bg-white/55
+            p-5
+            backdrop-blur-xl
+            dark:border-white/10
+            dark:bg-white/[0.025]
+            sm:p-6
+          "
+        >
           <div>
             <div
               className="
-                inline-flex
-                items-center
-                gap-2
-                rounded-full
-                border
-                border-cyan-500/20
-                bg-cyan-500/10
-                px-4
-                py-2
-                text-sm
-                font-semibold
-                text-cyan-600
-                dark:text-cyan-400
+                flex
+                flex-col
+                gap-3
+                sm:flex-row
+                sm:items-center
+                sm:justify-between
               "
             >
-              <Sparkles size={16} />
-              Financial command center
+              <span
+                className="
+                  inline-flex
+                  w-fit
+                  items-center
+                  gap-2
+                  rounded-full
+                  border
+                  border-cyan-500/20
+                  bg-cyan-500/10
+                  px-3.5
+                  py-2
+                  text-xs
+                  font-bold
+                  text-cyan-700
+                  dark:text-cyan-300
+                "
+              >
+                <Sparkles size={14} />
+
+                Financial command center
+              </span>
+
+              <span
+                className="
+                  inline-flex
+                  w-fit
+                  items-center
+                  gap-2
+                  rounded-full
+                  border
+                  border-slate-200
+                  bg-white/70
+                  px-3
+                  py-2
+                  text-xs
+                  font-medium
+                  text-slate-500
+                  dark:border-white/10
+                  dark:bg-white/[0.04]
+                  dark:text-slate-400
+                "
+              >
+                <CalendarDays
+                  size={14}
+                  className="text-violet-500"
+                />
+
+                {currentDate}
+              </span>
             </div>
 
             <h1
@@ -205,6 +485,7 @@ function WelcomeBanner({
                 max-w-3xl
                 text-3xl
                 font-black
+                leading-tight
                 tracking-tight
                 text-slate-950
                 dark:text-white
@@ -213,6 +494,7 @@ function WelcomeBanner({
               "
             >
               {greeting},{" "}
+
               <span
                 className="
                   bg-gradient-to-r
@@ -223,67 +505,110 @@ function WelcomeBanner({
                   text-transparent
                 "
               >
-                {firstName}
-              </span>{" "}
-              👋
+                {displayName}
+              </span>
+
+              <span
+                className="
+                  ml-2
+                  inline-block
+                  origin-bottom
+                  animate-[wave_2.5s_ease-in-out_infinite]
+                "
+              >
+                👋
+              </span>
             </h1>
 
             <p
               className="
-                mt-5
+                mt-4
                 max-w-2xl
-                text-base
+                text-sm
                 leading-7
-                text-slate-600
+                text-slate-500
                 dark:text-slate-400
-                sm:text-lg
+                sm:text-base
               "
             >
-              {quote}
+              {financeMessage}
             </p>
           </div>
 
+          {/* Quick actions */}
+
           <div
             className="
-              mt-8
-              flex
-              flex-col
+              mt-7
+              grid
               gap-3
-              sm:flex-row
+              sm:grid-cols-2
+              xl:grid-cols-3
             "
           >
             <button
               type="button"
-              onClick={onAddIncome}
+              onClick={() =>
+                onAddIncome?.()
+              }
               className="
-                flex
+                group
+                relative
+                inline-flex
+                min-h-13
                 items-center
                 justify-center
                 gap-2
+                overflow-hidden
                 rounded-2xl
-                bg-emerald-500
+                bg-gradient-to-r
+                from-emerald-500
+                to-teal-500
                 px-5
                 py-3
-                font-semibold
+                font-bold
                 text-white
                 shadow-lg
                 shadow-emerald-500/20
                 transition
                 hover:-translate-y-0.5
-                hover:bg-emerald-600
+                hover:shadow-xl
+                hover:shadow-emerald-500/25
               "
             >
+              <span
+                className="
+                  absolute
+                  inset-0
+                  -translate-x-full
+                  bg-gradient-to-r
+                  from-transparent
+                  via-white/25
+                  to-transparent
+                  transition-transform
+                  duration-700
+                  group-hover:translate-x-full
+                "
+              />
+
               <ArrowUpCircle
                 size={19}
+                className="relative"
               />
-              Add Income
+
+              <span className="relative">
+                Add Income
+              </span>
             </button>
 
             <button
               type="button"
-              onClick={onAddExpense}
+              onClick={() =>
+                onAddExpense?.()
+              }
               className="
-                flex
+                inline-flex
+                min-h-13
                 items-center
                 justify-center
                 gap-2
@@ -293,220 +618,370 @@ function WelcomeBanner({
                 bg-white/70
                 px-5
                 py-3
-                font-semibold
+                font-bold
                 text-slate-700
-                backdrop-blur-xl
                 transition
                 hover:-translate-y-0.5
-                hover:border-red-400
-                hover:text-red-500
-                dark:border-slate-700
-                dark:bg-slate-950/40
+                hover:border-rose-500/30
+                hover:bg-rose-500/[0.06]
+                hover:text-rose-600
+                dark:border-white/10
+                dark:bg-white/[0.04]
                 dark:text-slate-200
+                dark:hover:text-rose-400
               "
             >
               <ArrowDownCircle
                 size={19}
               />
+
               Add Expense
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                navigate("/goals")
+              }
+              className="
+                inline-flex
+                min-h-13
+                items-center
+                justify-center
+                gap-2
+                rounded-2xl
+                border
+                border-violet-500/20
+                bg-violet-500/[0.07]
+                px-5
+                py-3
+                font-bold
+                text-violet-600
+                transition
+                hover:-translate-y-0.5
+                hover:border-violet-500/40
+                hover:bg-violet-500/10
+                dark:text-violet-400
+                sm:col-span-2
+                xl:col-span-1
+              "
+            >
+              <Target size={19} />
+
+              Savings Goals
             </button>
           </div>
         </div>
 
-        {/* Right summary card */}
+        {/* =================================================
+            RIGHT FINANCE BENTO AREA
+        ================================================== */}
 
         <div
           className="
-            relative
-            overflow-hidden
-            rounded-3xl
-            border
-            border-white/60
-            text-black
-            dark:text-white
-            dark:bg-slate-950
-            p-6
-            shadow-2xl
-            dark:border-slate-700
+            grid
+            min-w-0
+            gap-4
+            sm:grid-cols-2
+            lg:grid-cols-2
           "
         >
-          <div
-            className="
-              absolute
-              -right-16
-              -top-16
-              h-44
-              w-44
-              rounded-full
-              bg-cyan-500/30
-              blur-3xl
-            "
-          />
+          {/* Main balance card */}
 
-          <div
+          <article
             className="
-              absolute
-              -bottom-20
-              -left-12
-              h-44
-              w-44
-              rounded-full
-              bg-violet-500/20
-              blur-3xl
+              relative
+              min-w-0
+              overflow-hidden
+              rounded-3xl
+              border
+              border-cyan-500/20
+              bg-gradient-to-br
+              from-slate-950
+              via-[#071426]
+              to-[#082a38]
+              p-5
+              text-white
+              shadow-xl
+              shadow-cyan-950/20
+              sm:col-span-2
+              sm:p-6
             "
-          />
-
-          <div className="relative">
+          >
             <div
               className="
-                flex
-                items-center
-                justify-between
+                pointer-events-none
+                absolute
+                -right-16
+                -top-16
+                h-48
+                w-48
+                rounded-full
+                bg-cyan-500/15
+                blur-3xl
               "
-            >
-              <div>
-                <p
-                  className="
-                    text-sm
-                    text-slate-400
-                  "
-                >
-                  Available balance
-                </p>
-
-                <h2
-                  className="
-                    mt-2
-                    text-3xl
-                    font-black
-                    sm:text-4xl
-                  "
-                >
-                  {formatCurrency(balance)}
-                </h2>
-              </div>
-
-              <div
-                className="
-                  flex
-                  h-12
-                  w-12
-                  items-center
-                  justify-center
-                  rounded-2xl
-                  bg-cyan-500/15
-                  text-cyan-400
-                "
-              >
-                <WalletCards
-                  size={24}
-                />
-              </div>
-            </div>
+            />
 
             <div
               className="
-                mt-8
-                space-y-4
-                rounded-2xl
-                border
-                border-white/10
-                bg-white/[0.05]
-                p-4
+                pointer-events-none
+                absolute
+                -bottom-20
+                left-1/3
+                h-40
+                w-40
+                rounded-full
+                bg-violet-500/15
+                blur-3xl
               "
-            >
+            />
+
+            <div className="relative">
               <div
                 className="
                   flex
-                  items-center
-                  gap-3
+                  items-start
+                  justify-between
+                  gap-4
                 "
               >
-                <Clock3
-                  size={19}
-                  className="text-cyan-400"
-                />
-
                 <div>
                   <p
                     className="
                       text-xs
+                      font-bold
+                      uppercase
+                      tracking-[0.14em]
                       text-slate-400
                     "
                   >
-                    Current time
+                    Available balance
                   </p>
 
                   <p
                     className="
-                      mt-1
-                      font-bold
+                      mt-3
+                      break-words
+                      text-3xl
+                      font-black
+                      tracking-tight
+                      text-white
+                      sm:text-4xl
                     "
                   >
-                    {time.toLocaleTimeString(
-                      [],
-                      {
-                        hour: "2-digit",
-                        minute:
-                          "2-digit",
-                        second:
-                          "2-digit",
-                      }
+                    {formatCurrency(
+                      balance
                     )}
                   </p>
+                </div>
+
+                <div
+                  className="
+                    flex
+                    h-12
+                    w-12
+                    shrink-0
+                    items-center
+                    justify-center
+                    rounded-2xl
+                    bg-cyan-500/15
+                    text-cyan-300
+                  "
+                >
+                  <WalletCards
+                    size={23}
+                  />
                 </div>
               </div>
 
               <div
                 className="
-                  h-px
-                  bg-white/10
-                "
-              />
-
-              <div
-                className="
+                  mt-6
                   flex
                   items-center
-                  gap-3
+                  justify-between
+                  gap-4
+                  border-t
+                  border-white/10
+                  pt-4
                 "
               >
-                <CalendarDays
-                  size={19}
-                  className="text-violet-400"
-                />
-
                 <div>
                   <p
                     className="
-                      text-xs
-                      text-slate-400
+                      text-[10px]
+                      font-bold
+                      uppercase
+                      tracking-[0.12em]
+                      text-slate-500
                     "
                   >
-                    Today
+                    Savings rate
                   </p>
 
                   <p
                     className="
                       mt-1
                       text-sm
-                      font-semibold
+                      font-bold
+                      text-white
                     "
                   >
-                    {time.toLocaleDateString(
-                      undefined,
-                      {
-                        weekday: "long",
-                        day: "numeric",
-                        month: "long",
-                        year: "numeric",
-                      }
-                    )}
+                    {savingsRate}%
                   </p>
+                </div>
+
+                <div
+                  className="
+                    h-2
+                    min-w-0
+                    flex-1
+                    overflow-hidden
+                    rounded-full
+                    bg-white/10
+                  "
+                >
+                  <div
+                    className="
+                      h-full
+                      rounded-full
+                      bg-gradient-to-r
+                      from-cyan-400
+                      via-blue-500
+                      to-violet-500
+                      transition-all
+                      duration-700
+                    "
+                    style={{
+                      width: `${savingsRate}%`,
+                    }}
+                  />
                 </div>
               </div>
             </div>
-          </div>
+          </article>
+
+          <MetricCard
+            icon={TrendingUp}
+            label="Total income"
+            value={formatCurrency(
+              totalIncome
+            )}
+            helper="Money received"
+            iconClasses="
+              bg-emerald-500/10
+              text-emerald-600
+              dark:text-emerald-400
+            "
+          />
+
+          <MetricCard
+            icon={TrendingDown}
+            label="Total expense"
+            value={formatCurrency(
+              totalExpense
+            )}
+            helper="Money spent"
+            iconClasses="
+              bg-rose-500/10
+              text-rose-600
+              dark:text-rose-400
+            "
+          />
+
+          {/* Analytics link */}
+
+          <button
+            type="button"
+            onClick={() =>
+              navigate("/analytics")
+            }
+            className="
+              group
+              flex
+              min-w-0
+              items-center
+              justify-between
+              gap-4
+              rounded-2xl
+              border
+              border-slate-200/80
+              bg-white/70
+              p-4
+              text-left
+              transition
+              hover:-translate-y-0.5
+              hover:border-cyan-500/30
+              hover:shadow-lg
+              dark:border-white/10
+              dark:bg-white/[0.035]
+              sm:col-span-2
+            "
+          >
+            <span
+              className="
+                flex
+                min-w-0
+                items-center
+                gap-3
+              "
+            >
+              <span
+                className="
+                  flex
+                  h-10
+                  w-10
+                  shrink-0
+                  items-center
+                  justify-center
+                  rounded-xl
+                  bg-blue-500/10
+                  text-blue-600
+                  dark:text-blue-400
+                "
+              >
+                <BarChart3 size={18} />
+              </span>
+
+              <span className="min-w-0">
+                <span
+                  className="
+                    block
+                    text-sm
+                    font-bold
+                    text-slate-950
+                    dark:text-white
+                  "
+                >
+                  Financial analytics
+                </span>
+
+                <span
+                  className="
+                    mt-1
+                    block
+                    truncate
+                    text-xs
+                    text-slate-500
+                    dark:text-slate-400
+                  "
+                >
+                  Explore reports, trends and insights
+                </span>
+              </span>
+            </span>
+
+            <ArrowRight
+              size={18}
+              className="
+                shrink-0
+                text-slate-400
+                transition-transform
+                group-hover:translate-x-1
+                group-hover:text-cyan-500
+              "
+            />
+          </button>
         </div>
       </div>
     </motion.section>

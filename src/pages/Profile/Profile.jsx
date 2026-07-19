@@ -1,11 +1,11 @@
 import {
   Activity,
-  BellRing,
+  Bell,
   Database,
+  Settings2,
   ShieldCheck,
-  SlidersHorizontal,
-  Target,
   UserRound,
+  WalletCards,
 } from "lucide-react";
 
 import SectionReveal from "../../components/common/SectionReveal";
@@ -17,23 +17,28 @@ import FinancialGoalCard from "../../components/profile/FinancialGoalCard";
 import StatisticsCard from "../../components/profile/StatisticsCard";
 import SecurityCard from "../../components/profile/SecurityCard";
 import NotificationCard from "../../components/profile/NotificationCard";
-import ActivityTimeline from "../../components/profile/ActivityTimeline";
-import LoginHistoryCard from "../../components/profile/LoginHistoryCard";
+import ActivityHistoryCard from "../../components/profile/ActivityHistoryCard";
 import DangerZoneCard from "../../components/profile/DangerZoneCard";
 
 import DataManagementCard from "../../components/settings/DataManagementCard";
 
 /* =========================================================
-   SECTION TITLE
+   SECTION HEADING
 ========================================================= */
 
-function ProfileSectionHeader({
+function SectionHeading({
   icon: Icon,
   title,
   description,
 }) {
   return (
-    <div className="flex items-start gap-3">
+    <div
+      className="
+        flex
+        items-start
+        gap-3
+      "
+    >
       <div
         className="
           flex
@@ -47,18 +52,16 @@ function ProfileSectionHeader({
           border-cyan-500/20
           bg-cyan-500/10
           text-cyan-500
-          dark:text-cyan-400
         "
       >
         <Icon size={20} />
       </div>
 
-      <div>
+      <div className="min-w-0">
         <h2
           className="
             text-xl
-            font-bold
-            tracking-tight
+            font-black
             text-slate-950
             dark:text-white
             sm:text-2xl
@@ -70,7 +73,7 @@ function ProfileSectionHeader({
         <p
           className="
             mt-1
-            max-w-2xl
+            max-w-3xl
             text-sm
             leading-6
             text-slate-500
@@ -92,76 +95,30 @@ function Profile() {
   return (
     <section
       className="
-       
         relative
         min-w-0
         space-y-10
         pb-12
-
+        pt-4
+        sm:pt-6
       "
     >
-      {/* Background decoration */}
-
-      <div
-        className="
-          pointer-events-none
-          fixed
-          right-0
-          top-24
-          -z-10
-          h-96
-          w-96
-          rounded-full
-          bg-cyan-500/5
-          blur-[140px]
-        "
-      />
-
-      <div
-        className="
-          pointer-events-none
-          fixed
-          bottom-0
-          left-72
-          -z-10
-          h-96
-          w-96
-          rounded-full
-          bg-violet-500/5
-          blur-[140px]
-        "
-      />
-
-      {/* =====================================================
-          PAGE HEADER
-      ====================================================== */}
+      {/* Profile header */}
 
       <SectionReveal>
         <ProfileHeader />
       </SectionReveal>
 
-      {/* =====================================================
-          PERSONAL PROFILE
-      ====================================================== */}
+      {/* Personal information */}
 
-      <div className="space-y-5">
-        
 
-        <SectionReveal delay={0.05}>
+        <SectionReveal delay={0.04}>
           <PersonalInfoCard />
         </SectionReveal>
-      </div>
 
-      {/* =====================================================
-          PREFERENCES AND FINANCIAL GOAL
-      ====================================================== */}
 
-      <div className="space-y-5">
-        <ProfileSectionHeader
-          icon={SlidersHorizontal}
-          title="Preferences & Financial Goals"
-          description="Configure your regional preferences and manage your monthly savings target."
-        />
+      {/* Preferences and financial goal */}
+
 
         <div
           className="
@@ -173,47 +130,33 @@ function Profile() {
           "
         >
           <SectionReveal
-            delay={0.08}
+            delay={0.06}
             className="min-w-0"
           >
             <PreferencesCard />
           </SectionReveal>
 
           <SectionReveal
-            delay={0.11}
+            delay={0.08}
             className="min-w-0"
           >
             <FinancialGoalCard />
           </SectionReveal>
         </div>
-      </div>
 
-      {/* =====================================================
-          ACCOUNT STATISTICS
-      ====================================================== */}
 
-      <div className="space-y-5">
-        <ProfileSectionHeader
-          icon={Target}
-          title="Account Statistics"
-          description="Review your current finance activity and overall account progress."
-        />
+      {/* Statistics */}
 
-        <SectionReveal delay={0.14}>
+
+
+        <SectionReveal delay={0.1}>
           <StatisticsCard />
         </SectionReveal>
-      </div>
 
-      {/* =====================================================
-          SECURITY AND NOTIFICATIONS
-      ====================================================== */}
 
-      <div className="space-y-5">
-        <ProfileSectionHeader
-          icon={ShieldCheck}
-          title="Security & Notifications"
-          description="Control account security settings and choose which financial alerts you receive."
-        />
+      {/* Security and notifications */}
+
+
 
         <div
           className="
@@ -221,93 +164,61 @@ function Profile() {
             min-w-0
             items-start
             gap-6
-            xl:grid-cols-2
+            2xl:grid-cols-2
           "
         >
           <SectionReveal
-            delay={0.16}
+            delay={0.12}
             className="min-w-0"
           >
             <SecurityCard />
           </SectionReveal>
 
           <SectionReveal
-            delay={0.18}
+            delay={0.14}
             className="min-w-0"
           >
             <NotificationCard />
           </SectionReveal>
         </div>
-      </div>
 
-      {/* =====================================================
-          ACTIVITY AND LOGIN HISTORY
-      ====================================================== */}
 
-      <div className="space-y-5">
-        <ProfileSectionHeader
-          icon={Activity}
-          title="Activity & Login History"
-          description="Review recent account actions and authentication activity."
-        />
+      {/* Combined activity and login history */}
 
-        <div
-          className="
-            grid
-            min-w-0
-            items-start
-            gap-6
-            xl:grid-cols-2
-          "
+
+
+        <SectionReveal
+          delay={0.16}
+          className="min-w-0"
         >
-          <SectionReveal
-            delay={0.2}
-            className="min-w-0"
-          >
-            <ActivityTimeline />
-          </SectionReveal>
+          <ActivityHistoryCard />
+        </SectionReveal>
 
-          <SectionReveal
-            delay={0.22}
-            className="min-w-0"
-          >
-            <LoginHistoryCard />
-          </SectionReveal>
-        </div>
-      </div>
 
-      {/* =====================================================
-          DATA MANAGEMENT
-      ====================================================== */}
+      {/* Data management */}
 
-      <div className="space-y-5">
-        <ProfileSectionHeader
-          icon={Database}
-          title="Data Management"
-          description="Download a backup, restore saved information or clear locally stored finance data."
-        />
 
-        <SectionReveal delay={0.24}>
+
+        <SectionReveal
+          delay={0.18}
+          className="min-w-0"
+        >
           <DataManagementCard />
         </SectionReveal>
-      </div>
 
-      {/* =====================================================
-          DANGER ZONE
-      ====================================================== */}
 
-      <div className="space-y-5">
-        <ProfileSectionHeader
-          icon={BellRing}
-          title="Account Management"
-          description="Manage sensitive account actions carefully. Some actions cannot be reversed."
-        />
+      {/* Account management */}
 
-        <SectionReveal delay={0.26}>
+
+
+        <SectionReveal
+          delay={0.2}
+          className="min-w-0"
+        >
           <DangerZoneCard />
         </SectionReveal>
-      </div>
-    </section>
+      </section>
+
   );
 }
 

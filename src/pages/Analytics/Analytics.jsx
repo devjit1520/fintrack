@@ -453,11 +453,7 @@ function Analytics() {
         />
       </SectionReveal>
 
-      <SectionReveal delay={0.1}>
-        <AnalyticsOverview
-          {...analyticsProps}
-        />
-      </SectionReveal>
+
 
       {/* Primary charts */}
 

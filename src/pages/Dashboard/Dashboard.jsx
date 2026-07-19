@@ -382,18 +382,23 @@ function Dashboard() {
         </div>
       </div>
 
-      <div
-        className="
-          grid
-          min-w-0
-          items-start
-          gap-6
-          xl:grid-cols-2
-        "
-      >
-        <FinanceTips />
-        <Achievements />
-      </div>
+<div
+  className="
+    grid
+    min-w-0
+    items-start
+    gap-6
+    2xl:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]
+  "
+>
+  <div className="min-w-0">
+    <FinanceTips />
+  </div>
+
+  <div className="min-w-0">
+    <Achievements />
+  </div>
+</div>
 
       <AddTransactionForm
         open={

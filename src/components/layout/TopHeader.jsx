@@ -339,37 +339,7 @@ function TopHeader({
                 />
               </div>
 
-              <div
-                className="
-                  hidden
-                  max-w-40
-                  text-left
-                  xl:block
-                "
-              >
-                <p
-                  className="
-                    truncate
-                    font-semibold
-                    text-slate-800
-                    dark:text-white
-                  "
-                >
-                  {displayName}
-                </p>
 
-                <p
-                  className="
-                    truncate
-                    text-xs
-                    text-slate-500
-                    dark:text-slate-400
-                  "
-                >
-                  {profile.role ||
-                    "FinTrack Member"}
-                </p>
-              </div>
             </button>
 
             <ProfileDropdown

@@ -1,5 +1,6 @@
 import navigation from "../../data/navigation";
 import SidebarItem from "./SidebarItem";
+import SidebarProfileCard from "./SidebarProfileCard";
 import {
   ShieldCheck,
 
@@ -95,89 +96,17 @@ function Sidebar() {
       </nav>
 
       {/* Bottom project card */}
+<div
+  className="
+    mt-auto
+    border-t
+    border-white/[0.08]
+    p-4
+  "
+>
+  <SidebarProfileCard />
+</div> 
 
-            <div
-              className="
-                shrink-0
-                border-t
-                border-slate-200
-                p-4
-                dark:border-slate-800
-              "
-            >
-              <div
-                className="
-                  relative
-                  overflow-hidden
-                  rounded-2xl
-                  border
-                  border-cyan-500/15
-                  bg-gradient-to-br
-                  from-cyan-500/[0.09]
-                  via-blue-500/[0.05]
-                  to-violet-500/[0.09]
-                  p-4
-                "
-              >
-                <div
-                  className="
-                    pointer-events-none
-                    absolute
-                    -right-10
-                    -top-10
-                    h-24
-                    w-24
-                    rounded-full
-                    bg-violet-500/15
-                    blur-2xl
-                  "
-                />
-
-                <div className="relative flex items-start gap-3">
-                  <div
-                    className="
-                      flex
-                      h-10
-                      w-10
-                      shrink-0
-                      items-center
-                      justify-center
-                      rounded-xl
-                      bg-emerald-500/10
-                      text-emerald-500
-                    "
-                  >
-                    <ShieldCheck size={18} />
-                  </div>
-
-                  <div className="min-w-0">
-                    <p
-                      className="
-                        text-sm
-                        font-bold
-                        text-slate-950
-                        dark:text-white
-                      "
-                    >
-                      FinTrack Pro
-                    </p>
-
-                    <p
-                      className="
-                        mt-1
-                        text-xs
-                        leading-5
-                        text-slate-500
-                        dark:text-slate-400
-                      "
-                    >
-                      Your financial data stays protected and
-                      organized.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
     </aside>
   );
 }

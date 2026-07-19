@@ -1,37 +1,69 @@
-import { useMemo } from "react";
+import {
+  useMemo,
+  useState,
+} from "react";
+
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 
 import {
-  Cell,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-} from "recharts";
-
-import {
-  PieChart as PieChartIcon,
+  ArrowRight,
+  BadgeIndianRupee,
+  BookOpen,
+  Car,
+  ChevronDown,
+  ChevronUp,
+  CircleAlert,
+  Coffee,
+  HeartPulse,
+  Home,
+  Layers3,
+  Plane,
   ReceiptText,
+  ShoppingBag,
   Tags,
-  TrendingUp,
+  Utensils,
+  WalletCards,
 } from "lucide-react";
 
-import EmptyState from "../common/EmptyState";
+import useFinance from "../../hooks/useFinance";
+import useProfile from "../../hooks/useProfile";
 
 /* =========================================================
-   COLORS
+   CATEGORY DESIGN
 ========================================================= */
 
-const CATEGORY_COLORS = [
-  "#8b5cf6",
-  "#06b6d4",
-  "#f43f5e",
-  "#f59e0b",
-  "#10b981",
-  "#3b82f6",
-  "#ec4899",
-  "#14b8a6",
-  "#f97316",
-  "#6366f1",
+const CATEGORY_DESIGNS = [
+  {
+    color: "#06b6d4",
+    bar: "from-cyan-400 to-blue-500",
+    icon: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400",
+  },
+  {
+    color: "#8b5cf6",
+    bar: "from-violet-400 to-purple-500",
+    icon: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
+  },
+  {
+    color: "#f43f5e",
+    bar: "from-rose-400 to-red-500",
+    icon: "bg-rose-500/10 text-rose-600 dark:text-rose-400",
+  },
+  {
+    color: "#10b981",
+    bar: "from-emerald-400 to-teal-500",
+    icon: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+  },
+  {
+    color: "#f59e0b",
+    bar: "from-amber-400 to-orange-500",
+    icon: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+  },
+  {
+    color: "#3b82f6",
+    bar: "from-blue-400 to-indigo-500",
+    icon: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
+  },
 ];
 
 /* =========================================================
@@ -42,555 +74,1186 @@ function getSafeNumber(value) {
   const number = Number(value);
 
   return Number.isFinite(number)
-    ? Math.abs(number)
+    ? number
     : 0;
 }
 
-function formatCurrency(value) {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(Number(value) || 0);
-}
-
-function formatCategory(value) {
+function normalizeCategory(value) {
   const category = String(
     value || "Other"
   ).trim();
 
-  if (!category) {
-    return "Other";
-  }
-
-  return category
-    .replace(/[-_]/g, " ")
-    .replace(/\b\w/g, (letter) =>
-      letter.toUpperCase()
-    );
+  return category || "Other";
 }
 
-function shortenLabel(value, limit = 14) {
-  const label = String(value || "");
+function getCategoryIcon(category) {
+  const value =
+    category.toLowerCase();
 
-  if (label.length <= limit) {
-    return label;
+  if (
+    value.includes("food") ||
+    value.includes("restaurant") ||
+    value.includes("dining")
+  ) {
+    return Utensils;
   }
 
-  return `${label.slice(0, limit)}…`;
+  if (
+    value.includes("transport") ||
+    value.includes("fuel") ||
+    value.includes("vehicle")
+  ) {
+    return Car;
+  }
+
+  if (
+    value.includes("shopping") ||
+    value.includes("clothing")
+  ) {
+    return ShoppingBag;
+  }
+
+  if (
+    value.includes("rent") ||
+    value.includes("home") ||
+    value.includes("housing")
+  ) {
+    return Home;
+  }
+
+  if (
+    value.includes("health") ||
+    value.includes("medical")
+  ) {
+    return HeartPulse;
+  }
+
+  if (
+    value.includes("education") ||
+    value.includes("course")
+  ) {
+    return BookOpen;
+  }
+
+  if (
+    value.includes("coffee") ||
+    value.includes("snack")
+  ) {
+    return Coffee;
+  }
+
+  if (
+    value.includes("travel") ||
+    value.includes("flight") ||
+    value.includes("vacation")
+  ) {
+    return Plane;
+  }
+
+  if (
+    value.includes("bill") ||
+    value.includes("utility")
+  ) {
+    return ReceiptText;
+  }
+
+  return Tags;
 }
 
 /* =========================================================
-   CUSTOM TOOLTIP
+   SUMMARY METRIC
 ========================================================= */
 
-function ExpenseTooltip({
-  active,
-  payload,
+function SummaryMetric({
+  label,
+  value,
+  helper,
+  icon: Icon,
+  iconClasses,
 }) {
-  if (
-    !active ||
-    !Array.isArray(payload) ||
-    payload.length === 0
-  ) {
-    return null;
-  }
-
-  const data = payload[0]?.payload || {};
-
   return (
-    <div className="min-w-[190px] rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-2xl backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95">
-      <div className="flex items-center gap-2">
-        <span
-          className="size-3 rounded-full"
-          style={{
-            backgroundColor:
-              data.color,
-          }}
-        />
+    <article
+      className="
+        flex
+        min-w-0
+        items-center
+        gap-3
+        rounded-2xl
+        border
+        border-slate-200/80
+        bg-slate-50/70
+        p-4
+        dark:border-white/[0.08]
+        dark:bg-white/[0.025]
+      "
+    >
+      <div
+        className={`
+          flex
+          h-11
+          w-11
+          shrink-0
+          items-center
+          justify-center
+          rounded-xl
+          ${iconClasses}
+        `}
+      >
+        <Icon size={19} />
+      </div>
 
-        <p className="text-sm font-black text-slate-900 dark:text-white">
-          {data.name}
+      <div className="min-w-0">
+        <p
+          className="
+            text-[9px]
+            font-bold
+            uppercase
+            tracking-[0.13em]
+            text-slate-500
+            dark:text-slate-400
+          "
+        >
+          {label}
+        </p>
+
+        <p
+          className="
+            mt-1
+            truncate
+            text-xl
+            font-black
+            text-slate-950
+            dark:text-white
+          "
+        >
+          {value}
+        </p>
+
+        <p
+          className="
+            mt-0.5
+            truncate
+            text-[10px]
+            text-slate-500
+            dark:text-slate-400
+          "
+        >
+          {helper}
         </p>
       </div>
+    </article>
+  );
+}
 
-      <div className="mt-3 space-y-2">
-        <div className="flex items-center justify-between gap-6">
-          <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-            Amount
-          </span>
+/* =========================================================
+   CATEGORY ROW
+========================================================= */
 
-          <span className="text-xs font-black text-rose-600 dark:text-rose-400">
-            {formatCurrency(data.value)}
-          </span>
+function CategoryReportRow({
+  category,
+  index,
+  formatCurrency,
+}) {
+  const design =
+    CATEGORY_DESIGNS[
+      index %
+        CATEGORY_DESIGNS.length
+    ];
+
+  const Icon =
+    getCategoryIcon(
+      category.name
+    );
+
+  return (
+    <motion.article
+      initial={{
+        opacity: 0,
+        y: 12,
+      }}
+      animate={{
+        opacity: 1,
+        y: 0,
+      }}
+      transition={{
+        duration: 0.3,
+        delay: index * 0.04,
+        ease: "easeOut",
+      }}
+      className="
+        group
+        rounded-2xl
+        border
+        border-slate-200/80
+        bg-white
+        p-4
+        transition
+        duration-300
+        hover:border-cyan-500/25
+        hover:shadow-lg
+        dark:border-white/[0.08]
+        dark:bg-white/[0.025]
+        dark:hover:bg-white/[0.04]
+      "
+    >
+      <div
+        className="
+          flex
+          min-w-0
+          items-start
+          gap-3
+        "
+      >
+        <div
+          className={`
+            flex
+            h-11
+            w-11
+            shrink-0
+            items-center
+            justify-center
+            rounded-xl
+            ${design.icon}
+          `}
+        >
+          <Icon size={18} />
         </div>
 
-        <div className="flex items-center justify-between gap-6">
-          <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-            Share
-          </span>
+        <div className="min-w-0 flex-1">
+          <div
+            className="
+              flex
+              min-w-0
+              flex-col
+              gap-2
+              sm:flex-row
+              sm:items-start
+              sm:justify-between
+              sm:gap-4
+            "
+          >
+            <div className="min-w-0">
+              <div
+                className="
+                  flex
+                  min-w-0
+                  items-center
+                  gap-2
+                "
+              >
+                <p
+                  className="
+                    truncate
+                    text-sm
+                    font-black
+                    text-slate-950
+                    dark:text-white
+                  "
+                >
+                  {category.name}
+                </p>
 
-          <span className="text-xs font-black text-violet-600 dark:text-violet-400">
-            {Number(
-              data.percentage || 0
-            ).toFixed(1)}
-            %
-          </span>
-        </div>
+                {index === 0 && (
+                  <span
+                    className="
+                      shrink-0
+                      rounded-full
+                      bg-amber-500/10
+                      px-2
+                      py-1
+                      text-[8px]
+                      font-bold
+                      uppercase
+                      tracking-wide
+                      text-amber-600
+                      dark:text-amber-400
+                    "
+                  >
+                    Highest
+                  </span>
+                )}
+              </div>
 
-        <div className="flex items-center justify-between gap-6">
-          <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-            Transactions
-          </span>
+              <p
+                className="
+                  mt-1
+                  text-[10px]
+                  text-slate-500
+                  dark:text-slate-400
+                "
+              >
+                {category.transactions}{" "}
+                {category.transactions === 1
+                  ? "transaction"
+                  : "transactions"}
+              </p>
+            </div>
 
-          <span className="text-xs font-black text-slate-900 dark:text-white">
-            {data.count || 0}
-          </span>
+            <div
+              className="
+                shrink-0
+                sm:text-right
+              "
+            >
+              <p
+                className="
+                  text-base
+                  font-black
+                  text-slate-950
+                  dark:text-white
+                "
+              >
+                {formatCurrency(
+                  category.amount
+                )}
+              </p>
+
+              <p
+                className="
+                  mt-0.5
+                  text-[10px]
+                  font-bold
+                "
+                style={{
+                  color:
+                    design.color,
+                }}
+              >
+                {category.percentage}% of expenses
+              </p>
+            </div>
+          </div>
+
+          <div
+            className="
+              mt-3
+              h-2
+              overflow-hidden
+              rounded-full
+              bg-slate-200
+              dark:bg-slate-800
+            "
+          >
+            <motion.div
+              initial={{
+                width: 0,
+              }}
+              animate={{
+                width: `${category.percentage}%`,
+              }}
+              transition={{
+                duration: 0.75,
+                delay:
+                  index * 0.05,
+                ease: "easeOut",
+              }}
+              className={`
+                h-full
+                rounded-full
+                bg-gradient-to-r
+                ${design.bar}
+              `}
+            />
+          </div>
         </div>
       </div>
+    </motion.article>
+  );
+}
+
+/* =========================================================
+   EMPTY STATE
+========================================================= */
+
+function EmptyExpenseReport({
+  onAddExpense,
+}) {
+  return (
+    <div
+      className="
+        flex
+        min-h-[300px]
+        flex-col
+        items-center
+        justify-center
+        rounded-3xl
+        border
+        border-dashed
+        border-slate-300
+        bg-slate-50/60
+        px-6
+        py-10
+        text-center
+        dark:border-white/10
+        dark:bg-white/[0.02]
+      "
+    >
+      <div
+        className="
+          flex
+          h-16
+          w-16
+          items-center
+          justify-center
+          rounded-2xl
+          bg-rose-500/10
+          text-rose-500
+        "
+      >
+        <WalletCards size={28} />
+      </div>
+
+      <h3
+        className="
+          mt-5
+          text-lg
+          font-black
+          text-slate-950
+          dark:text-white
+        "
+      >
+        No expense categories yet
+      </h3>
+
+      <p
+        className="
+          mt-2
+          max-w-md
+          text-sm
+          leading-6
+          text-slate-500
+          dark:text-slate-400
+        "
+      >
+        Add an expense transaction and FinTrack will automatically
+        generate your category report.
+      </p>
+
+      <button
+        type="button"
+        onClick={onAddExpense}
+        className="
+          mt-5
+          inline-flex
+          items-center
+          justify-center
+          gap-2
+          rounded-xl
+          bg-rose-500
+          px-4
+          py-2.5
+          text-xs
+          font-bold
+          text-white
+          transition
+          hover:bg-rose-400
+        "
+      >
+        Add expense
+
+        <ArrowRight size={15} />
+      </button>
     </div>
   );
 }
 
 /* =========================================================
-   CENTER LABEL
+   EXPENSE PIE CHART
+   COMPONENT NAME KEPT TO AVOID CHANGING IMPORTS
 ========================================================= */
 
-function CenterLabel({
-  viewBox,
-  totalExpense,
-}) {
-  const {
-    cx = 0,
-    cy = 0,
-  } = viewBox || {};
+function ExpensePieChart() {
+  const navigate =
+    useNavigate();
 
-  return (
-    <g>
-      <text
-        x={cx}
-        y={cy - 8}
-        textAnchor="middle"
-        dominantBaseline="central"
-        fill="#94a3b8"
-        fontSize="11"
-        fontWeight="700"
-      >
-        TOTAL SPENT
-      </text>
+  const [
+    showAll,
+    setShowAll,
+  ] = useState(false);
 
-      <text
-        x={cx}
-        y={cy + 15}
-        textAnchor="middle"
-        dominantBaseline="central"
-        fill="#0f172a"
-        fontSize="16"
-        fontWeight="900"
-      >
-        {formatCurrency(totalExpense)}
-      </text>
-    </g>
-  );
-}
+  const finance =
+    useFinance() || {};
 
-/* =========================================================
-   COMPONENT
-========================================================= */
+  const profileContext =
+    useProfile() || {};
 
-function ExpensePieChart({
-  transactions = [],
-}) {
-  const safeTransactions =
-    Array.isArray(transactions)
-      ? transactions
+  const profile =
+    profileContext.profile || {};
+
+  const transactions =
+    Array.isArray(
+      finance.transactions
+    )
+      ? finance.transactions
       : [];
 
-  const analytics = useMemo(() => {
-    const categoryMap = new Map();
+  const currency =
+    profile.preferences?.currency ||
+    "INR";
 
-    safeTransactions.forEach(
-      (transaction) => {
-        const type = String(
-          transaction?.type || ""
-        ).toLowerCase();
-
-        if (type !== "expense") {
-          return;
+  const formatCurrency = (
+    value
+  ) => {
+    try {
+      return new Intl.NumberFormat(
+        "en-IN",
+        {
+          style: "currency",
+          currency,
+          maximumFractionDigits: 0,
         }
+      ).format(
+        getSafeNumber(value)
+      );
+    } catch {
+      return `₹${getSafeNumber(
+        value
+      ).toLocaleString("en-IN")}`;
+    }
+  };
 
-        const amount = getSafeNumber(
-          transaction?.amount
-        );
+  /* =======================================================
+     CATEGORY ANALYSIS
+  ======================================================= */
 
-        if (amount <= 0) {
-          return;
+  const report =
+    useMemo(() => {
+      const groupedCategories = {};
+
+      let totalExpense = 0;
+      let expenseTransactions = 0;
+
+      transactions.forEach(
+        (transaction) => {
+          if (
+            String(
+              transaction.type
+            ).toLowerCase() !==
+            "expense"
+          ) {
+            return;
+          }
+
+          const amount =
+            getSafeNumber(
+              transaction.amount
+            );
+
+          if (amount <= 0) {
+            return;
+          }
+
+          const category =
+            normalizeCategory(
+              transaction.category
+            );
+
+          if (
+            !groupedCategories[
+              category
+            ]
+          ) {
+            groupedCategories[
+              category
+            ] = {
+              amount: 0,
+              transactions: 0,
+            };
+          }
+
+          groupedCategories[
+            category
+          ].amount += amount;
+
+          groupedCategories[
+            category
+          ].transactions += 1;
+
+          totalExpense += amount;
+          expenseTransactions += 1;
         }
+      );
 
-        const category =
-          formatCategory(
-            transaction?.category
+      const categories =
+        Object.entries(
+          groupedCategories
+        )
+          .map(
+            ([name, details]) => ({
+              name,
+
+              amount:
+                details.amount,
+
+              transactions:
+                details.transactions,
+
+              percentage:
+                totalExpense > 0
+                  ? Number(
+                      (
+                        (details.amount /
+                          totalExpense) *
+                        100
+                      ).toFixed(1)
+                    )
+                  : 0,
+            })
+          )
+          .sort(
+            (first, second) =>
+              second.amount -
+              first.amount
           );
 
-        if (!categoryMap.has(category)) {
-          categoryMap.set(category, {
-            name: category,
-            value: 0,
-            count: 0,
-          });
-        }
+      const averageExpense =
+        expenseTransactions > 0
+          ? totalExpense /
+            expenseTransactions
+          : 0;
 
-        const current =
-          categoryMap.get(category);
-
-        current.value += amount;
-        current.count += 1;
-      }
-    );
-
-    const sortedCategories =
-      Array.from(
-        categoryMap.values()
-      ).sort(
-        (first, second) =>
-          second.value -
-          first.value
-      );
-
-    const visibleCategories =
-      sortedCategories.slice(0, 7);
-
-    const remainingCategories =
-      sortedCategories.slice(7);
-
-    if (
-      remainingCategories.length > 0
-    ) {
-      const other = remainingCategories.reduce(
-        (result, item) => {
-          result.value += item.value;
-          result.count += item.count;
-
-          return result;
-        },
-        {
-          name: "Other",
-          value: 0,
-          count: 0,
-        }
-      );
-
-      visibleCategories.push(other);
-    }
-
-    const totalExpense =
-      sortedCategories.reduce(
-        (total, item) =>
-          total + item.value,
-        0
-      );
-
-    const chartData =
-      visibleCategories.map(
-        (item, index) => ({
-          ...item,
-
-          percentage:
-            totalExpense > 0
-              ? (
-                  item.value /
-                  totalExpense
-                ) * 100
-              : 0,
-
-          color:
-            CATEGORY_COLORS[
-              index %
-                CATEGORY_COLORS.length
-            ],
-        })
-      );
-
-    return {
-      chartData,
-      totalExpense,
-      categoryCount:
-        sortedCategories.length,
-      transactionCount:
-        sortedCategories.reduce(
-          (total, item) =>
-            total + item.count,
-          0
-        ),
-      topCategory:
-        sortedCategories[0] || null,
-    };
-  }, [safeTransactions]);
+      return {
+        categories,
+        totalExpense,
+        expenseTransactions,
+        averageExpense,
+      };
+    }, [transactions]);
 
   const {
-    chartData,
+    categories,
     totalExpense,
-    categoryCount,
-    transactionCount,
-    topCategory,
-  } = analytics;
+    expenseTransactions,
+    averageExpense,
+  } = report;
 
+const topCategory =
+  categories[0] || null;
+
+const hasExpenseData =
+  categories.length > 0 &&
+  topCategory !== null;
+
+const visibleCategories =
+  showAll
+    ? categories
+    : categories.slice(0, 5);
+
+const hiddenCategoryCount =
+  Math.max(
+    categories.length - 5,
+    0
+  );
+
+const topCategoryName =
+  topCategory?.name ||
+  "No category";
+
+const topCategoryPercentage =
+  getSafeNumber(
+    topCategory?.percentage
+  );
+
+const highlyConcentrated =
+  hasExpenseData &&
+  topCategoryPercentage >= 60;
+
+let insightTitle =
+  "No expense data available";
+
+let insightDescription =
+  "Add an expense transaction to generate category insights.";
+
+if (hasExpenseData) {
+  if (categories.length === 1) {
+    insightTitle =
+      `All spending belongs to ${topCategoryName}`;
+
+    insightDescription =
+      `${topCategoryName} represents 100% of your recorded expenses. Add spending from more categories to receive a meaningful comparison.`;
+  } else if (highlyConcentrated) {
+    insightTitle =
+      `${topCategoryName} dominates your expenses`;
+
+    insightDescription =
+      `${topCategoryName} represents ${topCategoryPercentage}% of your total expenses. Review this category carefully.`;
+  } else {
+    insightTitle =
+      "Your expenses are distributed across categories";
+
+    insightDescription =
+      `${topCategoryName} is currently your largest category at ${topCategoryPercentage}% of total spending.`;
+  }
+}
   return (
-    <section className="relative min-w-0 overflow-hidden rounded-3xl border border-slate-200/80 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-6">
-      {/* Decorative glow */}
-      <div className="pointer-events-none absolute -right-20 -top-20 size-52 rounded-full bg-rose-500/10 blur-3xl" />
+    <section
+      className="
+        relative
+        min-w-0
+        overflow-hidden
+        rounded-[30px]
+        border
+        border-slate-200/80
+        bg-white
+        p-4
+        shadow-sm
+        dark:border-white/10
+        dark:bg-[#0d172a]
+        sm:p-5
+        lg:p-6
+      "
+    >
+      {/* Background decoration */}
+
+      <div
+        className="
+          pointer-events-none
+          absolute
+          -right-32
+          -top-32
+          h-72
+          w-72
+          rounded-full
+          bg-rose-500/[0.06]
+          blur-[110px]
+        "
+      />
+
+      <div
+        className="
+          pointer-events-none
+          absolute
+          -bottom-36
+          left-1/3
+          h-72
+          w-72
+          rounded-full
+          bg-cyan-500/[0.06]
+          blur-[110px]
+        "
+      />
 
       <div className="relative">
         {/* Header */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex min-w-0 items-start gap-3">
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-rose-500/10 text-rose-600 dark:text-rose-400">
-              <PieChartIcon
-                size={21}
-                strokeWidth={2}
+
+        <div
+          className="
+            flex
+            flex-col
+            gap-4
+            sm:flex-row
+            sm:items-center
+            sm:justify-between
+          "
+        >
+          <div
+            className="
+              flex
+              items-start
+              gap-3
+            "
+          >
+            <div
+              className="
+                flex
+                h-11
+                w-11
+                shrink-0
+                items-center
+                justify-center
+                rounded-2xl
+                bg-rose-500/10
+                text-rose-600
+                dark:text-rose-400
+              "
+            >
+              <BadgeIndianRupee
+                size={20}
               />
             </div>
 
-            <div className="min-w-0">
-              <h2 className="section-title">
+            <div>
+              <h2
+                className="
+                  text-lg
+                  font-black
+                  text-slate-950
+                  dark:text-white
+                  sm:text-xl
+                "
+              >
                 Expense Categories
               </h2>
 
-              <p className="section-description">
-                See which categories account
-                for most of your spending.
+              <p
+                className="
+                  mt-1
+                  max-w-2xl
+                  text-xs
+                  leading-5
+                  text-slate-500
+                  dark:text-slate-400
+                "
+              >
+                A clear report showing where your money is being spent.
               </p>
             </div>
           </div>
 
-          {topCategory && (
-            <div className="w-fit rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-2">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-rose-500">
-                Top category
-              </p>
+          <span
+            className="
+              inline-flex
+              w-fit
+              items-center
+              gap-2
+              rounded-full
+              border
+              border-slate-200
+              bg-slate-50
+              px-3.5
+              py-2
+              text-xs
+              font-semibold
+              text-slate-500
+              dark:border-white/10
+              dark:bg-white/[0.035]
+              dark:text-slate-400
+            "
+          >
+            <Layers3
+              size={14}
+              className="text-violet-500"
+            />
 
-              <p className="mt-1 max-w-[150px] truncate text-sm font-black text-rose-700 dark:text-rose-300">
-                {topCategory.name}
-              </p>
-            </div>
-          )}
+            All recorded expenses
+          </span>
         </div>
 
-        {chartData.length === 0 ? (
-          <EmptyState
-            icon={ReceiptText}
-            title="No expense data"
-            description="Add expense transactions to view your category spending breakdown."
-            className="min-h-[360px]"
-          />
+        {categories.length === 0 ? (
+          <div className="mt-5">
+            <EmptyExpenseReport
+              onAddExpense={() =>
+                navigate(
+                  "/transactions"
+                )
+              }
+            />
+          </div>
         ) : (
           <>
-            {/* Summary cards */}
-            <div className="mt-5 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 p-3.5">
-                <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400">
-                  <ReceiptText size={15} />
+            {/* Summary metrics */}
 
-                  <p className="text-[10px] font-bold uppercase tracking-wider">
-                    Total spent
-                  </p>
-                </div>
+            <div
+              className="
+                mt-5
+                grid
+                min-w-0
+                gap-3
+                sm:grid-cols-3
+              "
+            >
+              <SummaryMetric
+                label="Total Expense"
+                value={formatCurrency(
+                  totalExpense
+                )}
+                helper="All recorded spending"
+                icon={BadgeIndianRupee}
+                iconClasses="
+                  bg-rose-500/10
+                  text-rose-600
+                  dark:text-rose-400
+                "
+              />
 
-                <p className="mt-2 truncate text-sm font-black text-rose-700 dark:text-rose-300">
-                  {formatCurrency(
-                    totalExpense
-                  )}
-                </p>
-              </div>
+              <SummaryMetric
+                label="Categories"
+                value={categories.length}
+                helper={
+                  categories.length === 1
+                    ? "Expense category"
+                    : "Expense categories"
+                }
+                icon={Tags}
+                iconClasses="
+                  bg-cyan-500/10
+                  text-cyan-600
+                  dark:text-cyan-400
+                "
+              />
 
-              <div className="rounded-2xl border border-violet-500/20 bg-violet-500/10 p-3.5">
-                <div className="flex items-center gap-2 text-violet-600 dark:text-violet-400">
-                  <Tags size={15} />
-
-                  <p className="text-[10px] font-bold uppercase tracking-wider">
-                    Categories
-                  </p>
-                </div>
-
-                <p className="mt-2 text-sm font-black text-violet-700 dark:text-violet-300">
-                  {categoryCount}
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-blue-500/20 bg-blue-500/10 p-3.5">
-                <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
-                  <TrendingUp size={15} />
-
-                  <p className="text-[10px] font-bold uppercase tracking-wider">
-                    Transactions
-                  </p>
-                </div>
-
-                <p className="mt-2 text-sm font-black text-blue-700 dark:text-blue-300">
-                  {transactionCount}
-                </p>
-              </div>
+              <SummaryMetric
+                label="Average Expense"
+                value={formatCurrency(
+                  averageExpense
+                )}
+                helper={`${expenseTransactions} ${
+                  expenseTransactions === 1
+                    ? "transaction"
+                    : "transactions"
+                }`}
+                icon={ReceiptText}
+                iconClasses="
+                  bg-violet-500/10
+                  text-violet-600
+                  dark:text-violet-400
+                "
+              />
             </div>
 
-            {/* Chart and category legend */}
-            <div className="mt-6 grid min-w-0 gap-6 lg:grid-cols-[minmax(260px,0.9fr)_minmax(240px,1.1fr)] lg:items-center">
-              {/* Donut chart */}
-              <div className="h-[310px] min-w-0">
-                <ResponsiveContainer
-                  width="100%"
-                  height="100%"
+            {/* Category breakdown */}
+
+            <div
+              className="
+                mt-4
+                rounded-3xl
+                border
+                border-slate-200/80
+                bg-slate-50/70
+                p-4
+                dark:border-white/[0.08]
+                dark:bg-white/[0.02]
+                sm:p-5
+              "
+            >
+              <div
+                className="
+                  flex
+                  flex-col
+                  gap-3
+                  sm:flex-row
+                  sm:items-center
+                  sm:justify-between
+                "
+              >
+                <div>
+                  <h3
+                    className="
+                      text-sm
+                      font-black
+                      text-slate-950
+                      dark:text-white
+                    "
+                  >
+                    Category breakdown
+                  </h3>
+
+                  <p
+                    className="
+                      mt-1
+                      text-xs
+                      text-slate-500
+                      dark:text-slate-400
+                    "
+                  >
+                    Categories ranked from highest to lowest spending.
+                  </p>
+                </div>
+
+                <span
+                  className="
+                    inline-flex
+                    w-fit
+                    rounded-full
+                    bg-cyan-500/10
+                    px-3
+                    py-1.5
+                    text-[10px]
+                    font-bold
+                    text-cyan-600
+                    dark:text-cyan-400
+                  "
                 >
-                  <PieChart>
-                    <Pie
-                      data={chartData}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      innerRadius="57%"
-                      outerRadius="82%"
-                      paddingAngle={3}
-                      cornerRadius={8}
-                      stroke="none"
-                      animationDuration={800}
-                    >
-                      {chartData.map(
-                        (item) => (
-                          <Cell
-                            key={item.name}
-                            fill={item.color}
-                          />
-                        )
-                      )}
-
-                      <CenterLabel
-                        totalExpense={
-                          totalExpense
-                        }
-                      />
-                    </Pie>
-
-                    <Tooltip
-                      content={
-                        <ExpenseTooltip />
-                      }
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
+                  {expenseTransactions} expense{" "}
+                  {expenseTransactions === 1
+                    ? "record"
+                    : "records"}
+                </span>
               </div>
 
-              {/* Custom legend */}
-              <div className="min-w-0 space-y-3">
-                {chartData.map(
-                  (item, index) => (
-                    <div
-                      key={item.name}
-                      className="group rounded-2xl border border-slate-200 bg-slate-50/70 p-3.5 transition hover:border-slate-300 hover:bg-white dark:border-slate-800 dark:bg-slate-950/30 dark:hover:border-slate-700 dark:hover:bg-slate-950/60"
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex min-w-0 items-center gap-3">
-                          <div className="relative flex size-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm dark:bg-slate-900">
-                            <span
-                              className="size-3 rounded-full"
-                              style={{
-                                backgroundColor:
-                                  item.color,
-                              }}
-                            />
-
-                            <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-slate-200 text-[9px] font-black text-slate-600 dark:bg-slate-700 dark:text-slate-300">
-                              {index + 1}
-                            </span>
-                          </div>
-
-                          <div className="min-w-0">
-                            <p
-                              className="truncate text-sm font-bold text-slate-900 dark:text-white"
-                              title={item.name}
-                            >
-                              {shortenLabel(
-                                item.name,
-                                20
-                              )}
-                            </p>
-
-                            <p className="mt-1 text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                              {item.count}{" "}
-                              {item.count === 1
-                                ? "transaction"
-                                : "transactions"}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="shrink-0 text-right">
-                          <p className="text-sm font-black text-slate-900 dark:text-white">
-                            {formatCurrency(
-                              item.value
-                            )}
-                          </p>
-
-                          <p
-                            className="mt-1 text-xs font-bold"
-                            style={{
-                              color:
-                                item.color,
-                            }}
-                          >
-                            {item.percentage.toFixed(
-                              1
-                            )}
-                            %
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Category percentage bar */}
-                      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
-                        <div
-                          className="h-full rounded-full transition-[width] duration-700"
-                          style={{
-                            width: `${Math.min(
-                              Math.max(
-                                item.percentage,
-                                0
-                              ),
-                              100
-                            )}%`,
-
-                            backgroundColor:
-                              item.color,
-                          }}
-                        />
-                      </div>
-                    </div>
+              <div className="mt-4 space-y-3">
+                {visibleCategories.map(
+                  (category, index) => (
+                    <CategoryReportRow
+                      key={category.name}
+                      category={category}
+                      index={index}
+                      formatCurrency={
+                        formatCurrency
+                      }
+                    />
                   )
                 )}
               </div>
+
+              {hiddenCategoryCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setShowAll(
+                      (current) =>
+                        !current
+                    )
+                  }
+                  className="
+                    mt-4
+                    inline-flex
+                    w-full
+                    items-center
+                    justify-center
+                    gap-2
+                    rounded-xl
+                    border
+                    border-dashed
+                    border-slate-300
+                    px-4
+                    py-3
+                    text-xs
+                    font-bold
+                    text-slate-500
+                    transition
+                    hover:border-cyan-500/40
+                    hover:text-cyan-600
+                    dark:border-white/10
+                    dark:text-slate-400
+                    dark:hover:text-cyan-400
+                  "
+                >
+                  {showAll ? (
+                    <>
+                      Show fewer categories
+
+                      <ChevronUp
+                        size={15}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      View{" "}
+                      {hiddenCategoryCount}{" "}
+                      more{" "}
+                      {hiddenCategoryCount === 1
+                        ? "category"
+                        : "categories"}
+
+                      <ChevronDown
+                        size={15}
+                      />
+                    </>
+                  )}
+                </button>
+              )}
             </div>
 
-            {/* Footer insight */}
-            {topCategory && (
-              <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/30">
-                <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
-                  <strong className="text-slate-900 dark:text-white">
-                    {topCategory.name}
-                  </strong>{" "}
-                  is your largest expense
-                  category at{" "}
-                  <strong className="text-rose-600 dark:text-rose-400">
-                    {(
-                      (
-                        topCategory.value /
-                        totalExpense
-                      ) * 100
-                    ).toFixed(1)}
-                    %
-                  </strong>{" "}
-                  of total spending.
-                </p>
+            {/* Insight */}
+
+            <div
+              className="
+                mt-4
+                flex
+                flex-col
+                gap-4
+                rounded-2xl
+                border
+                border-amber-500/15
+                bg-amber-500/[0.05]
+                p-4
+                sm:flex-row
+                sm:items-center
+                sm:justify-between
+              "
+            >
+              <div
+                className="
+                  flex
+                  min-w-0
+                  items-start
+                  gap-3
+                "
+              >
+                <div
+                  className="
+                    flex
+                    h-10
+                    w-10
+                    shrink-0
+                    items-center
+                    justify-center
+                    rounded-xl
+                    bg-amber-500/10
+                    text-amber-600
+                    dark:text-amber-400
+                  "
+                >
+                  <CircleAlert
+                    size={18}
+                  />
+                </div>
+
+                <div className="min-w-0">
+                  <h3
+                    className="
+                      text-sm
+                      font-black
+                      text-slate-950
+                      dark:text-white
+                    "
+                  >
+                    {insightTitle}
+                  </h3>
+
+                  <p
+                    className="
+                      mt-1
+                      max-w-4xl
+                      text-xs
+                      leading-5
+                      text-slate-500
+                      dark:text-slate-400
+                    "
+                  >
+                    {insightDescription}
+                  </p>
+                </div>
               </div>
-            )}
+
+              <button
+                type="button"
+                onClick={() =>
+                  navigate(
+                    "/transactions"
+                  )
+                }
+                className="
+                  inline-flex
+                  w-full
+                  shrink-0
+                  items-center
+                  justify-center
+                  gap-2
+                  rounded-xl
+                  border
+                  border-cyan-500/20
+                  bg-cyan-500/10
+                  px-4
+                  py-2.5
+                  text-xs
+                  font-bold
+                  text-cyan-600
+                  transition
+                  hover:border-cyan-500/40
+                  hover:bg-cyan-500/15
+                  dark:text-cyan-400
+                  sm:w-auto
+                "
+              >
+                View transactions
+
+                <ArrowRight
+                  size={15}
+                />
+              </button>
+            </div>
           </>
         )}
       </div>
