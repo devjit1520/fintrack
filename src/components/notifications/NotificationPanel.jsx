@@ -16,31 +16,34 @@ import {
 
 import useNotifications from "../../hooks/useNotifications";
 
-function formatNotificationDate(
-  value
-) {
-  const date = new Date(value);
+/* =========================================================
+   DATE FORMATTER
+========================================================= */
 
-  if (
-    Number.isNaN(date.getTime())
-  ) {
+function formatNotificationDate(value) {
+  if (!value) {
     return "Recently";
   }
 
-  return new Intl.DateTimeFormat(
-    "en-IN",
-    {
-      day: "2-digit",
-      month: "short",
-      hour: "2-digit",
-      minute: "2-digit",
-    }
-  ).format(date);
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Recently";
+  }
+
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
 }
 
-function getNotificationDesign(
-  type
-) {
+/* =========================================================
+   NOTIFICATION DESIGN
+========================================================= */
+
+function getNotificationDesign(type) {
   switch (type) {
     case "income":
       return {
@@ -57,11 +60,17 @@ function getNotificationDesign(
       };
 
     case "warning":
-    case "danger":
       return {
         icon: TriangleAlert,
         iconClasses:
           "bg-amber-500/10 text-amber-500",
+      };
+
+    case "danger":
+      return {
+        icon: TriangleAlert,
+        iconClasses:
+          "bg-rose-500/10 text-rose-500",
       };
 
     case "success":
@@ -80,14 +89,17 @@ function getNotificationDesign(
   }
 }
 
+/* =========================================================
+   NOTIFICATION PANEL
+========================================================= */
+
 function NotificationPanel({
   open,
   onClose,
 }) {
   const {
-    notifications,
-    unreadCount,
-
+    notifications = [],
+    unreadCount = 0,
     markAsRead,
     markAllAsRead,
     dismissNotification,
@@ -115,51 +127,66 @@ function NotificationPanel({
           }}
           transition={{
             duration: 0.18,
+            ease: "easeOut",
           }}
           className="
-            absolute
-            right-0
-            top-full
-            z-[80]
-            mt-3
-            w-[min(92vw,420px)]
+            fixed
+            inset-x-3
+            top-[5.5rem]
+            z-[120]
+            flex
+            max-h-[calc(100dvh-6.5rem)]
+            flex-col
             overflow-hidden
             rounded-3xl
             border
             border-slate-200
             bg-white
             shadow-2xl
-            shadow-slate-900/20
+            shadow-slate-950/30
             dark:border-slate-700
             dark:bg-[#0d172a]
-            dark:shadow-black/50
+            dark:shadow-black/60
+
+            sm:absolute
+            sm:inset-x-auto
+            sm:right-0
+            sm:top-full
+            sm:mt-3
+            sm:w-[min(92vw,420px)]
           "
         >
-          {/* Header */}
+          {/* =================================================
+              HEADER
+          ================================================== */}
 
           <div
             className="
               flex
-              items-center
+              shrink-0
+              items-start
               justify-between
-              gap-4
+              gap-3
               border-b
               border-slate-200
               bg-gradient-to-r
               from-cyan-500/[0.08]
               via-blue-500/[0.04]
               to-violet-500/[0.08]
-              px-5
+              px-4
               py-4
               dark:border-slate-700
+              sm:items-center
+              sm:px-5
             "
           >
-            <div className="flex items-center gap-3">
+            <div className="flex min-w-0 items-start gap-3">
               <div
                 className="
                   flex
                   h-10
                   w-10
+                  shrink-0
                   items-center
                   justify-center
                   rounded-xl
@@ -170,9 +197,10 @@ function NotificationPanel({
                 <BellRing size={20} />
               </div>
 
-              <div>
+              <div className="min-w-0">
                 <h3
                   className="
+                    truncate
                     font-bold
                     text-slate-950
                     dark:text-white
@@ -200,27 +228,23 @@ function NotificationPanel({
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              {notifications.length >
-                0 && (
+            <div className="flex shrink-0 items-center gap-1.5">
+              {notifications.length > 0 && (
                 <button
                   type="button"
-                  onClick={
-                    markAllAsRead
-                  }
-                  disabled={
-                    unreadCount === 0
-                  }
+                  onClick={markAllAsRead}
+                  disabled={unreadCount === 0}
                   className="
                     inline-flex
+                    h-10
                     items-center
-                    gap-2
+                    justify-center
+                    gap-1.5
                     rounded-xl
                     border
                     border-cyan-500/20
                     bg-cyan-500/10
                     px-3
-                    py-2
                     text-xs
                     font-semibold
                     text-cyan-600
@@ -231,21 +255,22 @@ function NotificationPanel({
                     dark:text-cyan-400
                   "
                 >
-                  <CheckCheck
-                    size={15}
-                  />
+                  <CheckCheck size={15} />
 
-                  Mark all
+                  <span className="hidden min-[390px]:inline">
+                    Mark all
+                  </span>
                 </button>
               )}
 
               <button
                 type="button"
                 onClick={onClose}
+                aria-label="Close notifications"
                 className="
                   flex
-                  h-9
-                  w-9
+                  h-10
+                  w-10
                   items-center
                   justify-center
                   rounded-xl
@@ -256,24 +281,26 @@ function NotificationPanel({
                   dark:hover:bg-slate-800
                   dark:hover:text-white
                 "
-                aria-label="Close notifications"
               >
                 <X size={18} />
               </button>
             </div>
           </div>
 
-          {/* Notification list */}
+          {/* =================================================
+              NOTIFICATION LIST
+          ================================================== */}
 
           <div
             className="
-              max-h-[430px]
+              min-h-0
+              flex-1
               overflow-y-auto
+              overscroll-contain
               p-3
             "
           >
-            {notifications.length ===
-            0 ? (
+            {notifications.length === 0 ? (
               <div
                 className="
                   flex
@@ -281,7 +308,7 @@ function NotificationPanel({
                   flex-col
                   items-center
                   justify-center
-                  px-6
+                  px-5
                   text-center
                 "
               >
@@ -299,9 +326,7 @@ function NotificationPanel({
                     dark:text-slate-500
                   "
                 >
-                  <BellRing
-                    size={30}
-                  />
+                  <BellRing size={30} />
                 </div>
 
                 <h4
@@ -325,10 +350,8 @@ function NotificationPanel({
                     dark:text-slate-400
                   "
                 >
-                  New transactions,
-                  budget warnings and
-                  completed goals will appear
-                  here.
+                  Transactions, budget warnings and completed
+                  goals will appear here.
                 </p>
               </div>
             ) : (
@@ -346,12 +369,11 @@ function NotificationPanel({
                     return (
                       <motion.article
                         layout
-                        key={
-                          notification.id
-                        }
+                        key={notification.id}
                         className={`
                           group
                           relative
+                          overflow-hidden
                           rounded-2xl
                           border
                           p-4
@@ -360,15 +382,15 @@ function NotificationPanel({
                             notification.read
                               ? `
                                 border-slate-200
-                                bg-slate-50/60
+                                bg-slate-50/70
                                 dark:border-slate-700
                                 dark:bg-slate-900/50
                               `
                               : `
-                                border-cyan-500/20
-                                bg-cyan-500/[0.06]
-                                dark:border-cyan-500/20
-                                dark:bg-cyan-500/[0.06]
+                                border-cyan-500/25
+                                bg-cyan-500/[0.07]
+                                dark:border-cyan-500/25
+                                dark:bg-cyan-500/[0.07]
                               `
                           }
                         `}
@@ -379,10 +401,12 @@ function NotificationPanel({
                               absolute
                               right-4
                               top-4
-                              h-2
-                              w-2
+                              h-2.5
+                              w-2.5
                               rounded-full
                               bg-cyan-500
+                              shadow
+                              shadow-cyan-500/40
                             "
                           />
                         )}
@@ -390,7 +414,7 @@ function NotificationPanel({
                         <button
                           type="button"
                           onClick={() =>
-                            markAsRead(
+                            markAsRead?.(
                               notification.id
                             )
                           }
@@ -399,7 +423,7 @@ function NotificationPanel({
                             w-full
                             items-start
                             gap-3
-                            pr-8
+                            pr-7
                             text-left
                           "
                         >
@@ -415,37 +439,33 @@ function NotificationPanel({
                               ${design.iconClasses}
                             `}
                           >
-                            <Icon
-                              size={18}
-                            />
+                            <Icon size={18} />
                           </div>
 
                           <div className="min-w-0 flex-1">
                             <p
                               className="
+                                break-words
                                 text-sm
                                 font-bold
                                 text-slate-900
                                 dark:text-white
                               "
                             >
-                              {
-                                notification.title
-                              }
+                              {notification.title}
                             </p>
 
                             <p
                               className="
                                 mt-1
+                                break-words
                                 text-xs
                                 leading-5
                                 text-slate-500
                                 dark:text-slate-400
                               "
                             >
-                              {
-                                notification.message
-                              }
+                              {notification.message}
                             </p>
 
                             <p
@@ -468,10 +488,11 @@ function NotificationPanel({
                         <button
                           type="button"
                           onClick={() =>
-                            dismissNotification(
+                            dismissNotification?.(
                               notification.id
                             )
                           }
+                          aria-label="Dismiss notification"
                           className="
                             absolute
                             bottom-3
@@ -483,14 +504,14 @@ function NotificationPanel({
                             justify-center
                             rounded-lg
                             text-slate-400
-                            opacity-0
+                            opacity-100
                             transition
                             hover:bg-rose-500/10
                             hover:text-rose-500
-                            group-hover:opacity-100
-                            focus:opacity-100
+                            sm:opacity-0
+                            sm:group-hover:opacity-100
+                            sm:focus:opacity-100
                           "
-                          aria-label="Dismiss notification"
                         >
                           <X size={15} />
                         </button>
@@ -502,15 +523,20 @@ function NotificationPanel({
             )}
           </div>
 
-          {/* Footer */}
+          {/* =================================================
+              FOOTER
+          ================================================== */}
 
           {notifications.length > 0 && (
             <div
               className="
+                shrink-0
                 border-t
                 border-slate-200
+                bg-white
                 p-3
                 dark:border-slate-700
+                dark:bg-[#0d172a]
               "
             >
               <button
