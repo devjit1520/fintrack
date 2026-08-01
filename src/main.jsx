@@ -7,6 +7,7 @@ import App from "./App";
 
 import AuthProvider from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
+import DebtProvider from "./context/DebtContext";
 
 import "./index.css";
 
@@ -17,9 +18,20 @@ createRoot(
     <BrowserRouter>
       <AuthProvider>
         <ThemeProvider>
-          <App />
+          <DebtProvider>
+            <App />
 
-          <Toaster position="top-right" />
+            <Toaster
+              position="top-right"
+              toastOptions={{
+                duration: 3500,
+
+                style: {
+                  borderRadius: "14px",
+                },
+              }}
+            />
+          </DebtProvider>
         </ThemeProvider>
       </AuthProvider>
     </BrowserRouter>

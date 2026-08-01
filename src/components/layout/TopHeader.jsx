@@ -15,6 +15,10 @@ import ProfileDropdown from "./ProfileDropdown";
 
 import useProfile from "../../hooks/useProfile";
 
+/* =========================================================
+   TOP HEADER
+========================================================= */
+
 function TopHeader({
   openSidebar,
   openSearch,
@@ -47,6 +51,10 @@ function TopHeader({
       displayName
     )}&background=06b6d4&color=ffffff&size=128&bold=true`;
 
+  /* =======================================================
+     CLOSE PROFILE DROPDOWN
+  ======================================================= */
+
   useEffect(() => {
     if (!profileOpen) {
       return undefined;
@@ -68,7 +76,9 @@ function TopHeader({
     const handleEscape = (
       event
     ) => {
-      if (event.key === "Escape") {
+      if (
+        event.key === "Escape"
+      ) {
         setProfileOpen(false);
       }
     };
@@ -103,6 +113,8 @@ function TopHeader({
         top-0
         z-50
         h-20
+        w-full
+        shrink-0
         overflow-visible
         border-b
         border-slate-200
@@ -117,6 +129,7 @@ function TopHeader({
         className="
           flex
           h-full
+          min-w-0
           items-center
           justify-between
           gap-4
@@ -135,6 +148,7 @@ function TopHeader({
             flex
             h-11
             w-11
+            shrink-0
             items-center
             justify-center
             rounded-xl
@@ -150,81 +164,86 @@ function TopHeader({
           <Menu size={23} />
         </button>
 
-        {/* Search */}
+        {/* Desktop search */}
 
-<button
-  type="button"
-  onClick={() => openSearch?.()}
-  className="
-    group
-    mx-auto
-    hidden
-    w-full
-    max-w-2xl
-    items-center
-    gap-3
-    rounded-2xl
-    border
-    border-slate-200
-    bg-slate-50/80
-    px-5
-    py-3
-    text-left
-    shadow-sm
-    transition
-    hover:border-cyan-500/40
-    hover:bg-white
-    hover:shadow-md
-    dark:border-slate-700
-    dark:bg-slate-900/80
-    dark:hover:bg-slate-900
-    md:flex
-  "
->
-  <Search
-    size={19}
-    className="
-      shrink-0
-      text-slate-400
-      transition
-      group-hover:text-cyan-500
-    "
-  />
+        <button
+          type="button"
+          onClick={() =>
+            openSearch?.()
+          }
+          className="
+            group
+            mx-auto
+            hidden
+            w-full
+            max-w-2xl
+            min-w-0
+            items-center
+            gap-3
+            rounded-2xl
+            border
+            border-slate-200
+            bg-slate-50/80
+            px-5
+            py-3
+            text-left
+            shadow-sm
+            transition
+            hover:border-cyan-500/40
+            hover:bg-white
+            hover:shadow-md
+            dark:border-slate-700
+            dark:bg-slate-900/80
+            dark:hover:bg-slate-900
+            md:flex
+          "
+        >
+          <Search
+            size={19}
+            className="
+              shrink-0
+              text-slate-400
+              transition
+              group-hover:text-cyan-500
+            "
+          />
 
-  <span
-    className="
-      min-w-0
-      flex-1
-      truncate
-      text-slate-500
-      dark:text-slate-400
-    "
-  >
-    Search FinTrack...
-  </span>
+          <span
+            className="
+              min-w-0
+              flex-1
+              truncate
+              text-sm
+              text-slate-500
+              dark:text-slate-400
+            "
+          >
+            Search FinTrack...
+          </span>
 
-  <span
-    className="
-      flex
-      items-center
-      gap-1
-      rounded-lg
-      border
-      border-slate-200
-      bg-white
-      px-2
-      py-1
-      text-[11px]
-      font-medium
-      text-slate-500
-      shadow-sm
-      dark:border-slate-700
-      dark:bg-slate-800
-    "
-  >
-    Ctrl K
-  </span>
-</button>
+          <span
+            className="
+              flex
+              shrink-0
+              items-center
+              gap-1
+              rounded-lg
+              border
+              border-slate-200
+              bg-white
+              px-2
+              py-1
+              text-[11px]
+              font-medium
+              text-slate-500
+              shadow-sm
+              dark:border-slate-700
+              dark:bg-slate-800
+            "
+          >
+            Ctrl K
+          </span>
+        </button>
 
         {/* Right actions */}
 
@@ -232,11 +251,14 @@ function TopHeader({
           className="
             ml-auto
             flex
+            shrink-0
             items-center
             gap-2
             sm:gap-3
           "
         >
+          {/* Mobile search */}
+
           <button
             type="button"
             onClick={() =>
@@ -261,8 +283,6 @@ function TopHeader({
             <Search size={21} />
           </button>
 
-          {/* NotificationBell now owns its badge */}
-
           <NotificationBell />
 
           <ThemeToggle />
@@ -284,6 +304,8 @@ function TopHeader({
               aria-expanded={
                 profileOpen
               }
+              aria-haspopup="menu"
+              aria-label="Open profile menu"
               className={`
                 flex
                 items-center
@@ -338,8 +360,6 @@ function TopHeader({
                   "
                 />
               </div>
-
-
             </button>
 
             <ProfileDropdown

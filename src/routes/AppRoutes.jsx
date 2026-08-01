@@ -20,6 +20,7 @@ import PublicOnlyRoute from "../components/auth/PublicOnlyRoute";
 
 import ErrorBoundary from "../components/common/ErrorBoundary";
 import PageLoader from "../components/common/PageLoader";
+import DebtCenter from "../pages/DebtCenter/DebtCenter";
 
 import {
   Analytics,
@@ -134,6 +135,11 @@ function AppRoutes() {
                 </ErrorBoundary>
               }
             />
+              
+              <Route
+  path="/debt-center"
+  element={<DebtCenter />}
+/>
 
             <Route
               path="/profile"

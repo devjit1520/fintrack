@@ -22,23 +22,81 @@ import Sidebar from "../components/layout/Sidebar";
 import MobileSidebar from "../components/layout/MobileSidebar";
 import TopHeader from "../components/layout/TopHeader";
 
-import {
-  preloadRelatedRoutes,
-} from "../routes/routeModules";
+// import {
+//   preloadRelatedRoutes,
+// } from "../routes/routeModules";
+
+/* =========================================================
+   SIDEBAR STORAGE KEY
+========================================================= */
+
+const SIDEBAR_COLLAPSED_KEY =
+  "fintrack-sidebar-collapsed";
+
+/* =========================================================
+   READ SAVED SIDEBAR STATE
+========================================================= */
+
+function getInitialSidebarState() {
+  try {
+    return (
+      window.localStorage.getItem(
+        SIDEBAR_COLLAPSED_KEY
+      ) === "true"
+    );
+  } catch {
+    return false;
+  }
+}
+
+/* =========================================================
+   MAIN APPLICATION LAYOUT
+========================================================= */
 
 function MainLayout() {
+  const location =
+    useLocation();
+
   const [
     sidebarOpen,
     setSidebarOpen,
   ] = useState(false);
 
   const [
+    sidebarCollapsed,
+    setSidebarCollapsed,
+  ] = useState(
+    getInitialSidebarState
+  );
+
+  const [
     searchOpen,
     setSearchOpen,
   ] = useState(false);
 
-  const location =
-    useLocation();
+  /* =======================================================
+     SAVE SIDEBAR COLLAPSE STATE
+  ======================================================= */
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        SIDEBAR_COLLAPSED_KEY,
+        String(sidebarCollapsed)
+      );
+    } catch {
+      // Ignore storage errors.
+    }
+  }, [sidebarCollapsed]);
+
+  /* =======================================================
+     CLOSE MOBILE UI AFTER NAVIGATION
+  ======================================================= */
+
+  useEffect(() => {
+    setSidebarOpen(false);
+    setSearchOpen(false);
+  }, [location.pathname]);
 
   /* =======================================================
      GLOBAL SEARCH SHORTCUT
@@ -51,13 +109,18 @@ function MainLayout() {
       const pressedShortcut =
         (event.ctrlKey ||
           event.metaKey) &&
-        event.key.toLowerCase() ===
-          "k";
+        event.key
+          .toLowerCase() === "k";
 
-      if (pressedShortcut) {
-        event.preventDefault();
-        setSearchOpen(true);
+      if (!pressedShortcut) {
+        return;
       }
+
+      event.preventDefault();
+
+      setSearchOpen(
+        (current) => !current
+      );
     };
 
     window.addEventListener(
@@ -74,9 +137,7 @@ function MainLayout() {
   }, []);
 
   /* =======================================================
-     PRELOAD LIKELY NEXT PAGES
-
-     Skip background downloads on data-saver and slow 2G.
+     PRELOAD RELATED ROUTES
   ======================================================= */
 
   useEffect(() => {
@@ -106,8 +167,7 @@ function MainLayout() {
     };
 
     if (
-      "requestIdleCallback" in
-      window
+      "requestIdleCallback" in window
     ) {
       idleId =
         window.requestIdleCallback(
@@ -127,8 +187,7 @@ function MainLayout() {
     return () => {
       if (
         idleId &&
-        "cancelIdleCallback" in
-          window
+        "cancelIdleCallback" in window
       ) {
         window.cancelIdleCallback(
           idleId
@@ -142,6 +201,17 @@ function MainLayout() {
       }
     };
   }, [location.pathname]);
+
+  /* =======================================================
+     TOGGLE DESKTOP SIDEBAR
+  ======================================================= */
+
+  const toggleSidebarCollapse =
+    () => {
+      setSidebarCollapsed(
+        (current) => !current
+      );
+    };
 
   return (
     <div
@@ -157,7 +227,18 @@ function MainLayout() {
         dark:text-slate-100
       "
     >
-      <Sidebar />
+      {/* Fixed desktop sidebar */}
+
+      <Sidebar
+        collapsed={
+          sidebarCollapsed
+        }
+        onToggleCollapse={
+          toggleSidebarCollapse
+        }
+      />
+
+      {/* Mobile sidebar */}
 
       <MobileSidebar
         open={sidebarOpen}
@@ -166,11 +247,22 @@ function MainLayout() {
         }
       />
 
+      {/* Right application area */}
+
       <div
-        className="
+        className={`
+          min-h-dvh
           min-w-0
-          lg:ml-72
-        "
+          overflow-x-hidden
+          transition-[margin-left]
+          duration-300
+          ease-in-out
+          ${
+            sidebarCollapsed
+              ? "lg:ml-20"
+              : "lg:ml-72"
+          }
+        `}
       >
         <TopHeader
           openSidebar={() =>
@@ -185,27 +277,19 @@ function MainLayout() {
           className="
             min-h-[calc(100dvh-5rem)]
             min-w-0
+            overflow-x-hidden
             bg-[#f4f7fb]
             transition-colors
             duration-300
             dark:bg-[#020617]
           "
         >
-          {/*
-            mode="sync" keeps the current page visible while
-            the next page begins rendering.
-
-            mode="wait" was creating the visible pause.
-          */}
-
           <AnimatePresence
             mode="sync"
             initial={false}
           >
             <PageTransition
-              key={
-                location.pathname
-              }
+              key={location.pathname}
             >
               <div
                 className="
@@ -220,13 +304,9 @@ function MainLayout() {
                   lg:px-5
                 "
               >
-                <Suspense
-                  fallback={
-                    <RouteFallback />
-                  }
-                >
+               
                   <Outlet />
-                </Suspense>
+                
               </div>
             </PageTransition>
           </AnimatePresence>
