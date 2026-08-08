@@ -1,60 +1,32 @@
-import {
-  calculateRemainingAmount,
-  formatDebtDateInput,
-  getNextDebtDueDate,
-  getPositiveDebtNumber,
-  normalizeDebtRecord,
-} from "../utils/debtCalculations";
-
 /* =========================================================
-   STORAGE CONFIGURATION
+   DEBT STORAGE SERVICE
 ========================================================= */
 
-export const DEBT_STORAGE_KEY =
-  "fintrack-debts";
+const STORAGE_PREFIX =
+  "fintrack-debts-v1";
 
-export const DEBT_STORAGE_EVENT =
+const STORAGE_EVENT =
   "fintrack:debts-updated";
 
-const STORAGE_VERSION = 1;
-
-const LEGACY_STORAGE_KEYS = [
-  "debts",
-  "fintrack-debt-records",
-];
-
 /* =========================================================
-   BROWSER CHECK
+   BASIC HELPERS
 ========================================================= */
 
-/**
- * Checks whether localStorage is available.
- *
- * During React rendering or testing, window may not exist.
- */
-function isBrowserAvailable() {
+function isBrowser() {
   return (
-    typeof window !== "undefined" &&
+    typeof window !==
+      "undefined" &&
     typeof window.localStorage !==
       "undefined"
   );
 }
 
-/* =========================================================
-   ID GENERATOR
-========================================================= */
-
-/**
- * Creates a unique ID for debts and payments.
- *
- * Modern browsers use crypto.randomUUID().
- * Older browsers use a timestamp fallback.
- */
-export function createDebtId(
+function createId(
   prefix = "debt"
 ) {
   if (
-    typeof crypto !== "undefined" &&
+    typeof crypto !==
+      "undefined" &&
     typeof crypto.randomUUID ===
       "function"
   ) {
@@ -66,246 +38,512 @@ export function createDebtId(
     .slice(2, 10)}`;
 }
 
-/* =========================================================
-   USER STORAGE KEY
-========================================================= */
-
-/**
- * Removes unsupported characters from a user ID.
- */
-function normalizeStorageUserId(
-  userId
+function safeNumber(
+  value,
+  fallback = 0
 ) {
-  return String(userId || "")
-    .trim()
-    .replace(
-      /[^a-zA-Z0-9_-]/g,
-      "_"
-    );
+  const number =
+    Number(value);
+
+  return Number.isFinite(
+    number
+  )
+    ? number
+    : fallback;
 }
 
-/**
- * Creates a separate storage key for each authenticated user.
- *
- * Without user:
- * fintrack-debts
- *
- * With user:
- * fintrack-debts:user-uuid
- */
-export function getDebtStorageKey(
-  userId = ""
+function positiveNumber(
+  value,
+  fallback = 0
 ) {
-  const safeUserId =
-    normalizeStorageUserId(userId);
+  return Math.max(
+    0,
+    safeNumber(
+      value,
+      fallback
+    )
+  );
+}
 
-  if (!safeUserId) {
-    return DEBT_STORAGE_KEY;
+function getToday() {
+  const now = new Date();
+
+  const year =
+    now.getFullYear();
+
+  const month = String(
+    now.getMonth() + 1
+  ).padStart(2, "0");
+
+  const day = String(
+    now.getDate()
+  ).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+/* =========================================================
+   USER / STORAGE KEY
+========================================================= */
+
+function getUserIdentifier(
+  user
+) {
+  if (
+    typeof user ===
+    "string"
+  ) {
+    return (
+      user.trim() ||
+      "guest"
+    );
   }
 
-  return `${DEBT_STORAGE_KEY}:${safeUserId}`;
+  return (
+    user?.id ||
+    user?.email ||
+    "guest"
+  );
+}
+
+export function getDebtStorageKey(
+  user
+) {
+  return `${STORAGE_PREFIX}:${getUserIdentifier(
+    user
+  )}`;
 }
 
 /* =========================================================
-   NORMALIZE DEBT LIST
+   LEGACY STORAGE KEYS
+
+   This helps preserve older Debt Center data.
 ========================================================= */
 
-/**
- * Normalizes every debt record before it reaches the UI.
- *
- * It also prevents duplicate IDs.
- */
-function normalizeDebtList(
-  records
+function getLegacyKeys(user) {
+  const id =
+    getUserIdentifier(
+      user
+    );
+
+  return [
+    `fintrack-debts:${id}`,
+    `fintrack:debts:${id}`,
+    `fintrack_debts_${id}`,
+    `debts_${id}`,
+    "fintrack-debts",
+    "fintrack_debts",
+    "debts",
+  ];
+}
+
+/* =========================================================
+   SAFE JSON
+========================================================= */
+
+function safeParse(value) {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(
+      value
+    );
+  } catch {
+    return null;
+  }
+}
+
+/* =========================================================
+   PAYMENT NORMALIZATION
+========================================================= */
+
+function normalizePayment(
+  payment = {},
+  record = {}
 ) {
-  const safeRecords =
-    Array.isArray(records)
-      ? records
-      : [];
+  const amount =
+    positiveNumber(
+      payment.amount ??
+        payment.paidAmount ??
+        payment.value
+    );
 
-  const usedIds = new Set();
+  const date =
+    payment.paymentDate ||
+    payment.date ||
+    getToday();
 
-  return safeRecords
-    .filter(
-      (record) =>
-        record &&
-        typeof record === "object"
+  const receivable =
+    record.direction ===
+      "receivable" ||
+    record.type === "lent";
+
+  return {
+    ...payment,
+
+    id:
+      payment.id ||
+      createId(
+        "payment"
+      ),
+
+    amount,
+
+    paymentDate: date,
+
+    date,
+
+    notes:
+      payment.notes ??
+      payment.note ??
+      "",
+
+    note:
+      payment.note ??
+      payment.notes ??
+      "",
+
+    type:
+      payment.type ||
+      payment.paymentType ||
+      (receivable
+        ? "received"
+        : "paid"),
+
+    paymentType:
+      payment.paymentType ||
+      payment.type ||
+      (receivable
+        ? "received"
+        : "paid"),
+
+    direction:
+      payment.direction ||
+      (receivable
+        ? "receivable"
+        : "payable"),
+
+    createdAt:
+      payment.createdAt ||
+      new Date().toISOString(),
+  };
+}
+
+/* =========================================================
+   PAYMENT TOTAL
+========================================================= */
+
+function calculatePaymentsTotal(
+  record
+) {
+  const payments =
+    Array.isArray(
+      record?.payments
     )
-    .map((record) => {
-      let recordId = String(
-        record.id || ""
-      ).trim();
+      ? record.payments
+      : Array.isArray(
+            record?.paymentHistory
+          )
+        ? record.paymentHistory
+        : [];
 
-      if (
-        !recordId ||
-        usedIds.has(recordId)
-      ) {
-        recordId =
-          createDebtId("debt");
-      }
-
-      usedIds.add(recordId);
-
-      return normalizeDebtRecord({
-        ...record,
-        id: recordId,
-      });
-    });
+  return payments.reduce(
+    (total, payment) =>
+      total +
+      positiveNumber(
+        payment?.amount
+      ),
+    0
+  );
 }
 
 /* =========================================================
-   READ STORAGE PAYLOAD
+   RECORD NORMALIZATION
 ========================================================= */
 
-/**
- * Supports both storage formats:
- *
- * Old format:
- * [record, record]
- *
- * New format:
- * {
- *   version: 1,
- *   records: [...]
- * }
- */
-function extractStoredRecords(
-  parsedData
+function normalizeStoredRecord(
+  record = {}
 ) {
-  if (Array.isArray(parsedData)) {
-    return parsedData;
+  const type =
+    record.type ||
+    "loan";
+
+  const direction =
+    record.direction ||
+    (type === "lent"
+      ? "receivable"
+      : "payable");
+
+  const totalAmount =
+    positiveNumber(
+      record.totalAmount ??
+        record.amount
+    );
+
+  const rawPayments =
+    Array.isArray(
+      record.payments
+    )
+      ? record.payments
+      : Array.isArray(
+            record.paymentHistory
+          )
+        ? record.paymentHistory
+        : [];
+
+  const payments =
+    rawPayments.map(
+      (payment) =>
+        normalizePayment(
+          payment,
+          {
+            ...record,
+            type,
+            direction,
+          }
+        )
+    );
+
+  const paidAmount =
+    payments.reduce(
+      (total, payment) =>
+        total +
+        positiveNumber(
+          payment.amount
+        ),
+      0
+    );
+
+  const completed =
+    totalAmount > 0 &&
+    paidAmount >=
+      totalAmount;
+
+  return {
+    ...record,
+
+    id:
+      record.id ||
+      createId(),
+
+    type,
+
+    direction,
+
+    title:
+      record.title ||
+      "Untitled Debt",
+
+    partyName:
+      record.partyName ||
+      record.personName ||
+      record.lenderName ||
+      record.borrowerName ||
+      "",
+
+    totalAmount,
+
+    amount: totalAmount,
+
+    interestRate:
+      positiveNumber(
+        record.interestRate
+      ),
+
+    installmentAmount:
+      positiveNumber(
+        record.installmentAmount
+      ),
+
+    totalInstallments:
+      Math.max(
+        0,
+        Math.floor(
+          positiveNumber(
+            record.totalInstallments
+          )
+        )
+      ),
+
+    startDate:
+      record.startDate ||
+      getToday(),
+
+    nextDueDate:
+      record.nextDueDate ||
+      "",
+
+    notes:
+      record.notes ??
+      record.note ??
+      "",
+
+    payments,
+
+    paymentHistory:
+      payments,
+
+    status: completed
+      ? "completed"
+      : record.status ===
+          "completed"
+        ? "active"
+        : record.status ||
+          "active",
+
+    createdAt:
+      record.createdAt ||
+      new Date().toISOString(),
+
+    updatedAt:
+      record.updatedAt ||
+      new Date().toISOString(),
+  };
+}
+
+/* =========================================================
+   READ RAW STORAGE
+========================================================= */
+
+function readRawRecords(
+  key
+) {
+  if (!isBrowser()) {
+    return [];
+  }
+
+  const parsed =
+    safeParse(
+      window.localStorage.getItem(
+        key
+      )
+    );
+
+  if (
+    Array.isArray(parsed)
+  ) {
+    return parsed;
   }
 
   if (
-    parsedData &&
-    typeof parsedData === "object" &&
     Array.isArray(
-      parsedData.records
+      parsed?.debts
     )
   ) {
-    return parsedData.records;
+    return parsed.debts;
+  }
+
+  if (
+    Array.isArray(
+      parsed?.records
+    )
+  ) {
+    return parsed.records;
   }
 
   return [];
 }
 
-/**
- * Reads and parses one localStorage key.
- */
-function readStorageKey(
-  storageKey
-) {
-  if (!isBrowserAvailable()) {
-    return [];
-  }
-
-  try {
-    const storedValue =
-      window.localStorage.getItem(
-        storageKey
-      );
-
-    if (!storedValue) {
-      return [];
-    }
-
-    const parsedValue =
-      JSON.parse(storedValue);
-
-    return extractStoredRecords(
-      parsedValue
-    );
-  } catch {
-    return [];
-  }
-}
-
 /* =========================================================
-   READ ALL DEBTS
+   LOAD RECORDS
 ========================================================= */
 
-/**
- * Reads all saved debts.
- *
- * userId is optional.
- */
-export function getStoredDebts(
-  userId = ""
+export function loadDebtRecords(
+  user
 ) {
-  if (!isBrowserAvailable()) {
+  if (!isBrowser()) {
     return [];
   }
 
-  const storageKey =
-    getDebtStorageKey(userId);
+  const primaryKey =
+    getDebtStorageKey(
+      user
+    );
 
-  const currentRecords =
-    readStorageKey(storageKey);
+  const primaryRecords =
+    readRawRecords(
+      primaryKey
+    );
 
-  if (currentRecords.length > 0) {
-    return normalizeDebtList(
-      currentRecords
+  if (
+    primaryRecords.length >
+    0
+  ) {
+    return primaryRecords.map(
+      normalizeStoredRecord
     );
   }
 
   /*
-   * Legacy keys are checked only when no user ID is provided.
-   * This prevents another user's data from being loaded.
-   */
-  if (!userId) {
-    for (const legacyKey of LEGACY_STORAGE_KEYS) {
-      const legacyRecords =
-        readStorageKey(legacyKey);
+    Try old keys so previous
+    Debt Center records are not
+    accidentally lost.
+  */
 
-      if (
-        legacyRecords.length > 0
-      ) {
-        const normalizedRecords =
-          normalizeDebtList(
-            legacyRecords
-          );
+  const legacyKeys =
+    getLegacyKeys(user);
 
-        saveStoredDebts(
-          normalizedRecords
-        );
+  for (
+    const key of legacyKeys
+  ) {
+    const records =
+      readRawRecords(key);
 
-        return normalizedRecords;
-      }
+    if (
+      records.length === 0
+    ) {
+      continue;
     }
+
+    const normalized =
+      records.map(
+        normalizeStoredRecord
+      );
+
+    /*
+      Migrate old data into
+      the new storage key.
+    */
+
+    try {
+      window.localStorage.setItem(
+        primaryKey,
+        JSON.stringify(
+          normalized
+        )
+      );
+    } catch {
+      // Ignore migration failure.
+    }
+
+    return normalized;
   }
 
   return [];
 }
 
 /* =========================================================
-   STORAGE UPDATE EVENT
+   NOTIFY STORAGE UPDATE
 ========================================================= */
 
-/**
- * Sends a custom browser event after data changes.
- *
- * This allows DebtContext to update immediately without
- * refreshing the page.
- */
-function dispatchDebtStorageEvent(
-  records,
-  userId = ""
+function dispatchDebtUpdate(
+  user
 ) {
-  if (!isBrowserAvailable()) {
+  if (!isBrowser()) {
     return;
   }
 
   window.dispatchEvent(
     new CustomEvent(
-      DEBT_STORAGE_EVENT,
+      STORAGE_EVENT,
       {
         detail: {
-          userId,
-          storageKey:
+          key:
             getDebtStorageKey(
-              userId
+              user
             ),
-          records,
         },
       }
     )
@@ -313,753 +551,572 @@ function dispatchDebtStorageEvent(
 }
 
 /* =========================================================
-   SAVE ALL DEBTS
+   SAVE RECORDS
 ========================================================= */
 
-/**
- * Saves the complete debt list.
- */
-export function saveStoredDebts(
-  debts,
-  userId = ""
+export function saveDebtRecords(
+  user,
+  records
 ) {
-  const normalizedRecords =
-    normalizeDebtList(debts);
-
-  if (!isBrowserAvailable()) {
-    return normalizedRecords;
+  if (!isBrowser()) {
+    return [];
   }
 
-  const storageKey =
-    getDebtStorageKey(userId);
-
-  const storagePayload = {
-    version: STORAGE_VERSION,
-    updatedAt:
-      new Date().toISOString(),
-    records: normalizedRecords,
-  };
-
-  try {
-    window.localStorage.setItem(
-      storageKey,
-      JSON.stringify(
-        storagePayload
-      )
+  const normalized =
+    (
+      Array.isArray(records)
+        ? records
+        : []
+    ).map(
+      normalizeStoredRecord
     );
 
-    dispatchDebtStorageEvent(
-      normalizedRecords,
-      userId
-    );
-  } catch (error) {
-    throw new Error(
-      error?.message ||
-        "Unable to save debt records."
-    );
-  }
-
-  return normalizedRecords;
-}
-
-/* =========================================================
-   GET ONE DEBT
-========================================================= */
-
-/**
- * Finds one debt by its ID.
- */
-export function getStoredDebtById(
-  debtId,
-  userId = ""
-) {
-  const safeDebtId = String(
-    debtId || ""
-  ).trim();
-
-  if (!safeDebtId) {
-    return null;
-  }
-
-  const debts =
-    getStoredDebts(userId);
-
-  return (
-    debts.find(
-      (debt) =>
-        debt.id === safeDebtId
-    ) || null
+  window.localStorage.setItem(
+    getDebtStorageKey(
+      user
+    ),
+    JSON.stringify(
+      normalized
+    )
   );
+
+  dispatchDebtUpdate(
+    user
+  );
+
+  return normalized;
 }
 
 /* =========================================================
-   CREATE DEBT
+   ADD RECORD
 ========================================================= */
 
-/**
- * Creates and saves a new loan, EMI, borrowed amount,
- * lent amount, or other due.
- */
-export function createStoredDebt(
-  debtData,
-  userId = ""
+export function createDebtRecord(
+  user,
+  payload = {}
 ) {
-  if (
-    !debtData ||
-    typeof debtData !== "object"
-  ) {
-    throw new Error(
-      "Valid debt information is required."
+  const records =
+    loadDebtRecords(
+      user
     );
-  }
 
   const now =
     new Date().toISOString();
 
-  const newDebt =
-    normalizeDebtRecord({
-      ...debtData,
+  const type =
+    payload.type ||
+    "loan";
 
-      id:
-        debtData.id ||
-        createDebtId("debt"),
+  const totalAmount =
+    positiveNumber(
+      payload.totalAmount ??
+        payload.amount
+    );
 
-      payments:
-        Array.isArray(
-          debtData.payments
-        )
-          ? debtData.payments
-          : [],
+  const newRecord =
+    normalizeStoredRecord({
+      ...payload,
 
-      createdAt:
-        debtData.createdAt ||
-        now,
+      id: createId(),
+
+      type,
+
+      direction:
+        payload.direction ||
+        (type === "lent"
+          ? "receivable"
+          : "payable"),
+
+      totalAmount,
+
+      amount: totalAmount,
+
+      payments: [],
+
+      paymentHistory: [],
+
+      status: "active",
+
+      createdAt: now,
 
       updatedAt: now,
     });
 
-  const currentDebts =
-    getStoredDebts(userId);
-
-  const updatedDebts = [
-    newDebt,
-    ...currentDebts,
-  ];
-
-  saveStoredDebts(
-    updatedDebts,
-    userId
+  saveDebtRecords(
+    user,
+    [
+      newRecord,
+      ...records,
+    ]
   );
 
-  return newDebt;
+  return newRecord;
 }
 
 /* =========================================================
-   UPDATE DEBT
+   UPDATE RECORD
 ========================================================= */
 
-/**
- * Updates an existing debt record.
- */
-export function updateStoredDebt(
-  debtId,
-  updates,
-  userId = ""
+export function updateDebtRecord(
+  user,
+  recordId,
+  updates = {}
 ) {
-  const safeDebtId = String(
-    debtId || ""
-  ).trim();
-
-  if (!safeDebtId) {
+  if (!recordId) {
     throw new Error(
-      "Debt ID is required."
+      "Debt record ID is required."
     );
   }
 
-  if (
-    !updates ||
-    typeof updates !== "object"
-  ) {
+  const records =
+    loadDebtRecords(
+      user
+    );
+
+  let updatedRecord =
+    null;
+
+  const nextRecords =
+    records.map(
+      (record) => {
+        if (
+          record.id !==
+          recordId
+        ) {
+          return record;
+        }
+
+        const type =
+          updates.type ||
+          record.type ||
+          "loan";
+
+        const merged =
+          normalizeStoredRecord({
+            ...record,
+            ...updates,
+
+            id: record.id,
+
+            type,
+
+            direction:
+              updates.direction ||
+              (type === "lent"
+                ? "receivable"
+                : "payable"),
+
+            payments:
+              record.payments ||
+              [],
+
+            createdAt:
+              record.createdAt,
+
+            updatedAt:
+              new Date().toISOString(),
+          });
+
+        updatedRecord =
+          merged;
+
+        return merged;
+      }
+    );
+
+  if (!updatedRecord) {
     throw new Error(
-      "Debt updates are required."
+      "Debt record not found."
     );
   }
 
-  const currentDebts =
-    getStoredDebts(userId);
-
-  const existingDebt =
-    currentDebts.find(
-      (debt) =>
-        debt.id === safeDebtId
-    );
-
-  if (!existingDebt) {
-    throw new Error(
-      "Debt record was not found."
-    );
-  }
-
-  const updatedDebt =
-    normalizeDebtRecord({
-      ...existingDebt,
-      ...updates,
-
-      id: existingDebt.id,
-
-      createdAt:
-        existingDebt.createdAt,
-
-      payments:
-        updates.payments !==
-        undefined
-          ? updates.payments
-          : existingDebt.payments,
-
-      updatedAt:
-        new Date().toISOString(),
-    });
-
-  const updatedDebts =
-    currentDebts.map((debt) =>
-      debt.id === safeDebtId
-        ? updatedDebt
-        : debt
-    );
-
-  saveStoredDebts(
-    updatedDebts,
-    userId
+  saveDebtRecords(
+    user,
+    nextRecords
   );
 
-  return updatedDebt;
+  return updatedRecord;
 }
 
 /* =========================================================
-   DELETE DEBT
+   DELETE RECORD
 ========================================================= */
 
-/**
- * Deletes a debt and its payment history.
- */
-export function deleteStoredDebt(
-  debtId,
-  userId = ""
+export function deleteDebtRecord(
+  user,
+  recordId
 ) {
-  const safeDebtId = String(
-    debtId || ""
-  ).trim();
-
-  if (!safeDebtId) {
-    throw new Error(
-      "Debt ID is required."
-    );
-  }
-
-  const currentDebts =
-    getStoredDebts(userId);
-
-  const debtExists =
-    currentDebts.some(
-      (debt) =>
-        debt.id === safeDebtId
-    );
-
-  if (!debtExists) {
+  if (!recordId) {
     return false;
   }
 
-  const updatedDebts =
-    currentDebts.filter(
-      (debt) =>
-        debt.id !== safeDebtId
+  const records =
+    loadDebtRecords(
+      user
     );
 
-  saveStoredDebts(
-    updatedDebts,
-    userId
+  const nextRecords =
+    records.filter(
+      (record) =>
+        record.id !==
+        recordId
+    );
+
+  if (
+    nextRecords.length ===
+    records.length
+  ) {
+    return false;
+  }
+
+  saveDebtRecords(
+    user,
+    nextRecords
   );
 
   return true;
 }
 
 /* =========================================================
-   PAYMENT NORMALIZATION
+   ADVANCE MONTHLY DUE DATE
 ========================================================= */
 
-/**
- * Creates a safe payment object.
- */
-function normalizeDebtPayment(
-  paymentData,
-  debt,
-  remainingBeforePayment
+function advanceMonthlyDate(
+  dateValue
 ) {
-  const requestedAmount =
-    getPositiveDebtNumber(
-      paymentData.amount
-    );
-
-  if (requestedAmount <= 0) {
-    throw new Error(
-      "Payment amount must be greater than zero."
-    );
+  if (!dateValue) {
+    return "";
   }
+
+  const date =
+    new Date(
+      `${dateValue}T00:00:00`
+    );
 
   if (
-    remainingBeforePayment <= 0
+    Number.isNaN(
+      date.getTime()
+    )
   ) {
-    throw new Error(
-      "This debt has already been completed."
-    );
+    return dateValue;
   }
 
-  /*
-   * Prevents a payment from becoming greater than
-   * the outstanding amount.
-   */
-  const amount = Math.min(
-    requestedAmount,
-    remainingBeforePayment
+  date.setMonth(
+    date.getMonth() + 1
   );
 
-  const interestAmount =
-    Math.min(
-      getPositiveDebtNumber(
-        paymentData.interestAmount
-      ),
-      amount
-    );
+  const year =
+    date.getFullYear();
 
-  const amountAfterInterest =
-    Math.max(
-      amount - interestAmount,
-      0
-    );
+  const month = String(
+    date.getMonth() + 1
+  ).padStart(2, "0");
 
-  const lateFee = Math.min(
-    getPositiveDebtNumber(
-      paymentData.lateFee
-    ),
-    amountAfterInterest
-  );
+  const day = String(
+    date.getDate()
+  ).padStart(2, "0");
 
-  const availablePrincipal =
-    Math.max(
-      amount -
-        interestAmount -
-        lateFee,
-      0
-    );
-
-  const providedPrincipal =
-    paymentData.principalAmount !==
-    undefined
-      ? getPositiveDebtNumber(
-          paymentData.principalAmount
-        )
-      : availablePrincipal;
-
-  const principalAmount =
-    Math.min(
-      providedPrincipal,
-      availablePrincipal
-    );
-
-  const otherAmount =
-    Math.max(
-      amount -
-        principalAmount -
-        interestAmount -
-        lateFee,
-      0
-    );
-
-  const now =
-    new Date().toISOString();
-
-  return {
-    id:
-      paymentData.id ||
-      createDebtId("payment"),
-
-    debtId: debt.id,
-
-    type:
-      debt.direction ===
-      "receivable"
-        ? "received"
-        : "paid",
-
-    amount,
-    principalAmount,
-    interestAmount,
-    lateFee,
-    otherAmount,
-
-    paymentDate:
-      formatDebtDateInput(
-        paymentData.paymentDate ||
-          new Date()
-      ),
-
-    paymentMethod:
-      paymentData.paymentMethod ||
-      "cash",
-
-    referenceNumber:
-      paymentData.referenceNumber ||
-      "",
-
-    notes:
-      paymentData.notes || "",
-
-    createdAt:
-      paymentData.createdAt ||
-      now,
-
-    updatedAt: now,
-  };
+  return `${year}-${month}-${day}`;
 }
 
 /* =========================================================
-   RECORD PAYMENT
+   ADD PAYMENT
 ========================================================= */
 
-/**
- * Records:
- *
- * Loan payment
- * EMI payment
- * Borrowed-money repayment
- * Received payment from money lent
- */
-export function recordDebtPayment(
-  debtId,
-  paymentData,
-  userId = ""
+export function createDebtPayment(
+  user,
+  recordId,
+  paymentPayload = {}
 ) {
-  const safeDebtId = String(
-    debtId || ""
-  ).trim();
-
-  if (!safeDebtId) {
+  if (!recordId) {
     throw new Error(
-      "Debt ID is required."
+      "Debt record ID is required."
     );
   }
 
-  if (
-    !paymentData ||
-    typeof paymentData !== "object"
-  ) {
+  const records =
+    loadDebtRecords(
+      user
+    );
+
+  let createdPayment =
+    null;
+
+  let found = false;
+
+  const nextRecords =
+    records.map(
+      (record) => {
+        if (
+          record.id !==
+          recordId
+        ) {
+          return record;
+        }
+
+        found = true;
+
+        const alreadyPaid =
+          calculatePaymentsTotal(
+            record
+          );
+
+        const remaining =
+          Math.max(
+            0,
+            positiveNumber(
+              record.totalAmount
+            ) - alreadyPaid
+          );
+
+        if (
+          remaining <= 0
+        ) {
+          throw new Error(
+            "This debt is already completed."
+          );
+        }
+
+        const requestedAmount =
+          positiveNumber(
+            paymentPayload.amount
+          );
+
+        if (
+          requestedAmount <=
+          0
+        ) {
+          throw new Error(
+            "Payment amount must be greater than 0."
+          );
+        }
+
+        /*
+          Prevent accidental
+          overpayment.
+        */
+
+        const amount =
+          Math.min(
+            requestedAmount,
+            remaining
+          );
+
+        const payment =
+          normalizePayment(
+            {
+              ...paymentPayload,
+              amount,
+            },
+            record
+          );
+
+        createdPayment =
+          payment;
+
+        const payments = [
+          ...(record.payments ||
+            []),
+          payment,
+        ];
+
+        const newPaidTotal =
+          payments.reduce(
+            (
+              total,
+              item
+            ) =>
+              total +
+              positiveNumber(
+                item.amount
+              ),
+            0
+          );
+
+        const completed =
+          newPaidTotal >=
+          positiveNumber(
+            record.totalAmount
+          );
+
+        const installmentAmount =
+          positiveNumber(
+            record.installmentAmount
+          );
+
+        let nextDueDate =
+          record.nextDueDate ||
+          "";
+
+        if (completed) {
+          nextDueDate = "";
+        } else if (
+          installmentAmount >
+            0 &&
+          amount >=
+            installmentAmount
+        ) {
+          nextDueDate =
+            advanceMonthlyDate(
+              nextDueDate
+            );
+        }
+
+        return normalizeStoredRecord({
+          ...record,
+
+          payments,
+
+          paymentHistory:
+            payments,
+
+          status: completed
+            ? "completed"
+            : "active",
+
+          nextDueDate,
+
+          updatedAt:
+            new Date().toISOString(),
+        });
+      }
+    );
+
+  if (!found) {
     throw new Error(
-      "Payment information is required."
+      "Debt record not found."
     );
   }
 
-  const currentDebts =
-    getStoredDebts(userId);
-
-  const existingDebt =
-    currentDebts.find(
-      (debt) =>
-        debt.id === safeDebtId
-    );
-
-  if (!existingDebt) {
-    throw new Error(
-      "Debt record was not found."
-    );
-  }
-
-  const remainingBeforePayment =
-    calculateRemainingAmount(
-      existingDebt
-    );
-
-  const newPayment =
-    normalizeDebtPayment(
-      paymentData,
-      existingDebt,
-      remainingBeforePayment
-    );
-
-  const currentPayments =
-    Array.isArray(
-      existingDebt.payments
-    )
-      ? existingDebt.payments
-      : [];
-
-  const updatedPayments = [
-    newPayment,
-    ...currentPayments,
-  ];
-
-  const remainingAfterPayment =
-    Math.max(
-      remainingBeforePayment -
-        newPayment.amount,
-      0
-    );
-
-  const installmentAmount =
-    getPositiveDebtNumber(
-      existingDebt.installmentAmount
-    );
-
-  /*
-   * A due date advances when:
-   *
-   * 1. The debt is not completed.
-   * 2. The payment covers the expected installment.
-   * 3. The user did not disable date advancement.
-   */
-  const requiredPayment =
-    installmentAmount > 0
-      ? Math.min(
-          installmentAmount,
-          remainingBeforePayment
-        )
-      : remainingBeforePayment;
-
-  const shouldAdvanceDate =
-    paymentData.advanceDueDate !==
-      false &&
-    newPayment.amount >=
-      requiredPayment;
-
-  let nextDueDate =
-    existingDebt.nextDueDate;
-
-  if (
-    remainingAfterPayment <= 0
-  ) {
-    nextDueDate = "";
-  } else if (
-    shouldAdvanceDate &&
-    existingDebt.nextDueDate
-  ) {
-    nextDueDate =
-      getNextDebtDueDate(
-        existingDebt.nextDueDate,
-        existingDebt.frequency
-      );
-  }
-
-  const updatedDebt =
-    normalizeDebtRecord({
-      ...existingDebt,
-
-      payments:
-        updatedPayments,
-
-      nextDueDate,
-
-      updatedAt:
-        new Date().toISOString(),
-    });
-
-  const updatedDebts =
-    currentDebts.map((debt) =>
-      debt.id === safeDebtId
-        ? updatedDebt
-        : debt
-    );
-
-  saveStoredDebts(
-    updatedDebts,
-    userId
+  saveDebtRecords(
+    user,
+    nextRecords
   );
 
-  return {
-    debt: updatedDebt,
-    payment: newPayment,
-  };
+  return createdPayment;
 }
 
 /* =========================================================
    DELETE PAYMENT
 ========================================================= */
 
-/**
- * Deletes one payment from a debt's payment history.
- */
 export function deleteDebtPayment(
-  debtId,
-  paymentId,
-  userId = ""
+  user,
+  recordId,
+  paymentId
 ) {
-  const safeDebtId = String(
-    debtId || ""
-  ).trim();
-
-  const safePaymentId = String(
-    paymentId || ""
-  ).trim();
-
   if (
-    !safeDebtId ||
-    !safePaymentId
+    !recordId ||
+    !paymentId
   ) {
-    throw new Error(
-      "Debt ID and payment ID are required."
-    );
+    return false;
   }
 
-  const existingDebt =
-    getStoredDebtById(
-      safeDebtId,
-      userId
+  const records =
+    loadDebtRecords(
+      user
     );
 
-  if (!existingDebt) {
-    throw new Error(
-      "Debt record was not found."
+  let removed = false;
+
+  const nextRecords =
+    records.map(
+      (record) => {
+        if (
+          record.id !==
+          recordId
+        ) {
+          return record;
+        }
+
+        const currentPayments =
+          record.payments ||
+          [];
+
+        const payments =
+          currentPayments.filter(
+            (payment) =>
+              payment.id !==
+              paymentId
+          );
+
+        if (
+          payments.length ===
+          currentPayments.length
+        ) {
+          return record;
+        }
+
+        removed = true;
+
+        const paidTotal =
+          payments.reduce(
+            (
+              total,
+              payment
+            ) =>
+              total +
+              positiveNumber(
+                payment.amount
+              ),
+            0
+          );
+
+        const completed =
+          paidTotal >=
+          positiveNumber(
+            record.totalAmount
+          );
+
+        return normalizeStoredRecord({
+          ...record,
+
+          payments,
+
+          paymentHistory:
+            payments,
+
+          status: completed
+            ? "completed"
+            : "active",
+
+          updatedAt:
+            new Date().toISOString(),
+        });
+      }
     );
+
+  if (!removed) {
+    return false;
   }
 
-  const currentPayments =
-    Array.isArray(
-      existingDebt.payments
-    )
-      ? existingDebt.payments
-      : [];
-
-  const paymentExists =
-    currentPayments.some(
-      (payment) =>
-        payment.id ===
-        safePaymentId
-    );
-
-  if (!paymentExists) {
-    return null;
-  }
-
-  const updatedPayments =
-    currentPayments.filter(
-      (payment) =>
-        payment.id !==
-        safePaymentId
-    );
-
-  return updateStoredDebt(
-    safeDebtId,
-    {
-      payments:
-        updatedPayments,
-    },
-    userId
+  saveDebtRecords(
+    user,
+    nextRecords
   );
+
+  return true;
 }
 
 /* =========================================================
-   PAYMENT HISTORY
+   CLEAR ALL RECORDS
 ========================================================= */
 
-/**
- * Creates one complete payment-history list from all debts.
- */
-export function getDebtPaymentHistory(
-  userId = ""
+export function clearDebtRecords(
+  user
 ) {
-  const debts =
-    getStoredDebts(userId);
-
-  const paymentHistory =
-    debts.flatMap((debt) => {
-      const payments =
-        Array.isArray(
-          debt.payments
-        )
-          ? debt.payments
-          : [];
-
-      return payments.map(
-        (payment) => ({
-          ...payment,
-
-          debtId: debt.id,
-          debtTitle: debt.title,
-          partyName:
-            debt.partyName,
-          direction:
-            debt.direction,
-          debtType: debt.type,
-        })
-      );
-    });
-
-  return paymentHistory.sort(
-    (first, second) => {
-      const firstDate =
-        new Date(
-          first.paymentDate ||
-            first.createdAt ||
-            0
-        ).getTime();
-
-      const secondDate =
-        new Date(
-          second.paymentDate ||
-            second.createdAt ||
-            0
-        ).getTime();
-
-      return secondDate - firstDate;
-    }
-  );
-}
-
-/* =========================================================
-   CLEAR DEBT DATA
-========================================================= */
-
-/**
- * Deletes all Debt Center records for one user.
- */
-export function clearStoredDebts(
-  userId = ""
-) {
-  if (!isBrowserAvailable()) {
+  if (!isBrowser()) {
     return;
   }
 
-  const storageKey =
-    getDebtStorageKey(userId);
+  window.localStorage.removeItem(
+    getDebtStorageKey(
+      user
+    )
+  );
 
-  try {
-    window.localStorage.removeItem(
-      storageKey
-    );
-
-    dispatchDebtStorageEvent(
-      [],
-      userId
-    );
-  } catch (error) {
-    throw new Error(
-      error?.message ||
-        "Unable to clear debt data."
-    );
-  }
-}
-
-/* =========================================================
-   CHECK FOR SAVED DATA
-========================================================= */
-
-/**
- * Returns true when at least one debt record exists.
- */
-export function hasStoredDebts(
-  userId = ""
-) {
-  return (
-    getStoredDebts(userId)
-      .length > 0
+  dispatchDebtUpdate(
+    user
   );
 }
 
@@ -1067,62 +1124,50 @@ export function hasStoredDebts(
    STORAGE SUBSCRIPTION
 ========================================================= */
 
-/**
- * Listens for:
- *
- * 1. Changes made in the current browser tab.
- * 2. Changes made in another browser tab.
- *
- * DebtContext will use this function.
- */
 export function subscribeToDebtStorage(
-  callback,
-  userId = ""
+  user,
+  callback
 ) {
   if (
-    !isBrowserAvailable() ||
-    typeof callback !== "function"
+    !isBrowser() ||
+    typeof callback !==
+      "function"
   ) {
     return () => {};
   }
 
-  const expectedStorageKey =
-    getDebtStorageKey(userId);
-
-  const handleCustomEvent = (
-    event
-  ) => {
-    if (
-      event.detail?.storageKey !==
-      expectedStorageKey
-    ) {
-      return;
-    }
-
-    callback(
-      normalizeDebtList(
-        event.detail?.records
-      )
+  const targetKey =
+    getDebtStorageKey(
+      user
     );
-  };
 
-  const handleStorageEvent = (
-    event
-  ) => {
-    if (
-      event.key !==
-      expectedStorageKey
-    ) {
-      return;
-    }
+  const handleCustomEvent =
+    (event) => {
+      if (
+        event?.detail?.key &&
+        event.detail.key !==
+          targetKey
+      ) {
+        return;
+      }
 
-    callback(
-      getStoredDebts(userId)
-    );
-  };
+      callback();
+    };
+
+  const handleStorageEvent =
+    (event) => {
+      if (
+        event.key !==
+        targetKey
+      ) {
+        return;
+      }
+
+      callback();
+    };
 
   window.addEventListener(
-    DEBT_STORAGE_EVENT,
+    STORAGE_EVENT,
     handleCustomEvent
   );
 
@@ -1133,7 +1178,7 @@ export function subscribeToDebtStorage(
 
   return () => {
     window.removeEventListener(
-      DEBT_STORAGE_EVENT,
+      STORAGE_EVENT,
       handleCustomEvent
     );
 
@@ -1149,17 +1194,19 @@ export function subscribeToDebtStorage(
 ========================================================= */
 
 const debtStorageService = {
-  getStoredDebts,
-  getStoredDebtById,
-  saveStoredDebts,
-  createStoredDebt,
-  updateStoredDebt,
-  deleteStoredDebt,
-  recordDebtPayment,
+  getDebtStorageKey,
+
+  loadDebtRecords,
+  saveDebtRecords,
+
+  createDebtRecord,
+  updateDebtRecord,
+  deleteDebtRecord,
+
+  createDebtPayment,
   deleteDebtPayment,
-  getDebtPaymentHistory,
-  clearStoredDebts,
-  hasStoredDebts,
+
+  clearDebtRecords,
   subscribeToDebtStorage,
 };
 

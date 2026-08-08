@@ -23,13 +23,25 @@ function TopHeader({
   openSidebar,
   openSearch,
 }) {
+  /* =======================================================
+     REFS
+  ======================================================= */
+
   const profileWrapperRef =
     useRef(null);
+
+  /* =======================================================
+     STATE
+  ======================================================= */
 
   const [
     profileOpen,
     setProfileOpen,
   ] = useState(false);
+
+  /* =======================================================
+     PROFILE
+  ======================================================= */
 
   const {
     profile = {},
@@ -106,23 +118,28 @@ function TopHeader({
     };
   }, [profileOpen]);
 
+  /* =======================================================
+     RENDER
+  ======================================================= */
+
   return (
     <header
       className="
         sticky
         top-0
-        z-50
-        h-20
-        w-full
+        z-[60]
+
+        h-24
         shrink-0
-        overflow-visible
+
         border-b
-        border-slate-200
-        bg-white/90
+        border-white/[0.07]
+
+        bg-[#020617]/95
+
+        shadow-[0_1px_0_rgba(255,255,255,0.015)]
+
         backdrop-blur-2xl
-        transition-colors
-        dark:border-slate-800
-        dark:bg-slate-950/90
       "
     >
       <div
@@ -131,19 +148,25 @@ function TopHeader({
           h-full
           min-w-0
           items-center
-          justify-between
-          gap-4
+          gap-3
+
           px-4
+
+          sm:px-6
+
           lg:px-8
         "
       >
-        {/* Mobile menu */}
+        {/* =================================================
+            MOBILE SIDEBAR BUTTON
+        ================================================== */}
 
         <button
           type="button"
           onClick={() =>
             openSidebar?.()
           }
+          aria-label="Open sidebar"
           className="
             flex
             h-11
@@ -151,20 +174,34 @@ function TopHeader({
             shrink-0
             items-center
             justify-center
+
             rounded-xl
-            text-slate-700
+
+            border
+            border-transparent
+
+            text-slate-300
+
             transition
-            hover:bg-slate-100
-            dark:text-white
-            dark:hover:bg-slate-800
+            duration-200
+
+            hover:border-white/[0.07]
+            hover:bg-white/[0.06]
+            hover:text-white
+
+            focus:outline-none
+            focus:ring-4
+            focus:ring-blue-500/10
+
             lg:hidden
           "
-          aria-label="Open sidebar"
         >
-          <Menu size={23} />
+          <Menu size={22} />
         </button>
 
-        {/* Desktop search */}
+        {/* =================================================
+            DESKTOP SEARCH
+        ================================================== */}
 
         <button
           type="button"
@@ -173,125 +210,218 @@ function TopHeader({
           }
           className="
             group
+
             mx-auto
             hidden
+
+            h-14
             w-full
             max-w-2xl
             min-w-0
+
             items-center
             gap-3
-            rounded-2xl
+
+            rounded-[18px]
+
             border
-            border-slate-200
-            bg-slate-50/80
+            border-slate-700/90
+
+            bg-[#0b1426]/90
+
             px-5
-            py-3
+
             text-left
+
             shadow-sm
+
             transition
-            hover:border-cyan-500/40
-            hover:bg-white
-            hover:shadow-md
-            dark:border-slate-700
-            dark:bg-slate-900/80
-            dark:hover:bg-slate-900
+            duration-200
+
+            hover:border-cyan-500/30
+            hover:bg-[#0e192e]
+            hover:shadow-lg
+            hover:shadow-black/10
+
+            focus:outline-none
+            focus:ring-4
+            focus:ring-cyan-500/10
+
             md:flex
           "
         >
+          {/* Search icon */}
+
           <Search
             size={19}
             className="
               shrink-0
+
               text-slate-400
+
               transition
-              group-hover:text-cyan-500
+              duration-200
+
+              group-hover:text-cyan-400
             "
           />
+
+          {/* Search placeholder */}
 
           <span
             className="
               min-w-0
               flex-1
               truncate
+
               text-sm
-              text-slate-500
-              dark:text-slate-400
+              font-medium
+              text-slate-400
+
+              transition
+
+              group-hover:text-slate-300
             "
           >
             Search FinTrack...
           </span>
+
+          {/* Keyboard shortcut */}
 
           <span
             className="
               flex
               shrink-0
               items-center
-              gap-1
+              justify-center
+
               rounded-lg
+
               border
-              border-slate-200
-              bg-white
-              px-2
+              border-slate-700
+
+              bg-slate-800/90
+
+              px-2.5
               py-1
-              text-[11px]
-              font-medium
+
+              text-[10px]
+              font-bold
               text-slate-500
+
               shadow-sm
-              dark:border-slate-700
-              dark:bg-slate-800
+
+              transition
+
+              group-hover:border-slate-600
+              group-hover:text-slate-400
             "
           >
             Ctrl K
           </span>
         </button>
 
-        {/* Right actions */}
+        {/* =================================================
+            RIGHT ACTIONS
+        ================================================== */}
 
         <div
           className="
             ml-auto
+
             flex
             shrink-0
             items-center
+
             gap-2
+
             sm:gap-3
           "
         >
-          {/* Mobile search */}
+          {/* ===============================================
+              MOBILE SEARCH
+          ================================================ */}
 
           <button
             type="button"
             onClick={() =>
               openSearch?.()
             }
+            aria-label="Open search"
             className="
               flex
               h-11
               w-11
               items-center
               justify-center
+
               rounded-xl
-              text-slate-700
+
+              border
+              border-transparent
+
+              text-slate-300
+
               transition
-              hover:bg-slate-100
-              dark:text-white
-              dark:hover:bg-slate-800
+              duration-200
+
+              hover:border-white/[0.07]
+              hover:bg-white/[0.06]
+              hover:text-cyan-300
+
+              focus:outline-none
+              focus:ring-4
+              focus:ring-cyan-500/10
+
               md:hidden
             "
-            aria-label="Open search"
           >
-            <Search size={21} />
+            <Search size={20} />
           </button>
 
-          <NotificationBell />
-
-          <ThemeToggle />
-
-          {/* Profile */}
+          {/* ===============================================
+              NOTIFICATION
+          ================================================ */}
 
           <div
-            ref={profileWrapperRef}
-            className="relative"
+            className="
+              flex
+              items-center
+              justify-center
+            "
+          >
+            <NotificationBell />
+          </div>
+
+          {/* ===============================================
+              THEME TOGGLE
+
+              Theme toggle still works.
+              Only the main shell/header stays dark.
+          ================================================ */}
+
+          <div
+            className="
+              flex
+              items-center
+              justify-center
+            "
+          >
+            <ThemeToggle />
+          </div>
+
+          {/* ===============================================
+              PROFILE
+          ================================================ */}
+
+          <div
+            ref={
+              profileWrapperRef
+            }
+            className="
+              relative
+              ml-1
+            "
           >
             <button
               type="button"
@@ -310,27 +440,41 @@ function TopHeader({
                 flex
                 items-center
                 gap-3
+
                 rounded-2xl
+
                 border
+
                 p-1.5
-                pr-2
+
                 transition
+                duration-200
+
+                focus:outline-none
+                focus:ring-4
+                focus:ring-cyan-500/10
+
                 ${
                   profileOpen
                     ? `
                       border-cyan-500/30
-                      bg-cyan-500/[0.06]
+                      bg-cyan-500/[0.07]
+                      shadow-lg
+                      shadow-cyan-500/[0.05]
                     `
                     : `
                       border-transparent
-                      hover:border-slate-200
-                      hover:bg-slate-100
-                      dark:hover:border-slate-700
-                      dark:hover:bg-slate-800
+
+                      hover:border-white/[0.08]
+                      hover:bg-white/[0.05]
                     `
                 }
               `}
             >
+              {/* ===========================================
+                  AVATAR
+              ============================================ */}
+
               <div className="relative">
                 <img
                   src={avatar}
@@ -338,34 +482,57 @@ function TopHeader({
                   className="
                     h-11
                     w-11
+
                     rounded-full
+
                     border-2
                     border-cyan-500
+
+                    bg-slate-800
+
                     object-cover
+
+                    shadow-lg
+                    shadow-cyan-500/10
                   "
                 />
+
+                {/* Online status */}
 
                 <span
                   className="
                     absolute
                     bottom-0
                     right-0
+
                     h-3
                     w-3
+
                     rounded-full
+
                     border-2
-                    border-white
+                    border-[#020617]
+
                     bg-emerald-500
-                    dark:border-slate-950
+
+                    shadow-sm
                   "
                 />
               </div>
             </button>
 
+            {/* ===========================================
+                PROFILE DROPDOWN
+            ============================================ */}
+
             <ProfileDropdown
-              open={profileOpen}
+              open={
+                profileOpen
+              }
               onClose={() =>
-                setProfileOpen(false)
+                setProfileOpen(
+                  false
+                )
               }
             />
           </div>

@@ -1,24 +1,27 @@
 import {
+  useEffect,
   useMemo,
   useState,
 } from "react";
 
+import { createPortal } from "react-dom";
+
 import { motion } from "framer-motion";
 
+import toast from "react-hot-toast";
+
 import {
-  ArrowDownLeft,
-  ArrowDownUp,
-  ArrowUpRight,
   Banknote,
   CalendarDays,
-  CheckCircle2,
+  Check,
   CircleDollarSign,
+  FileText,
   HandCoins,
-  History,
+  Landmark,
+  PiggyBank,
   Plus,
   ReceiptText,
-  Search,
-  SlidersHorizontal,
+  Save,
   UserRound,
   WalletCards,
   X,
@@ -26,1940 +29,2027 @@ import {
 
 import useDebt from "../../hooks/useDebt";
 
-import {
-  formatDebtCurrency,
-  formatDebtDate,
-  getDebtTypeLabel,
-  normalizeDebtRecord,
-} from "../../utils/debtCalculations";
-
 /* =========================================================
-   FILTER OPTIONS
+   DEBT TYPE CONFIGURATION
 ========================================================= */
 
-const paymentTypeOptions = [
+const DEBT_TYPES = [
   {
-    value: "all",
-    label: "All Payments",
+    id: "loan",
+    label: "Loan",
+    description:
+      "Personal, bank or business loan.",
+    Icon: Landmark,
+    activeClass:
+      "border-blue-500 bg-blue-500/10 text-blue-600 dark:text-blue-300",
+    iconClass:
+      "bg-blue-500/10 text-blue-500 dark:text-blue-300",
   },
+
   {
-    value: "paid",
-    label: "Paid",
+    id: "emi",
+    label: "EMI",
+    description:
+      "Installment-based repayment.",
+    Icon: ReceiptText,
+    activeClass:
+      "border-violet-500 bg-violet-500/10 text-violet-600 dark:text-violet-300",
+    iconClass:
+      "bg-violet-500/10 text-violet-500 dark:text-violet-300",
   },
+
   {
-    value: "received",
-    label: "Received",
+    id: "borrowed",
+    label: "Borrowed",
+    description:
+      "Money borrowed from someone.",
+    Icon: HandCoins,
+    activeClass:
+      "border-rose-500 bg-rose-500/10 text-rose-600 dark:text-rose-300",
+    iconClass:
+      "bg-rose-500/10 text-rose-500 dark:text-rose-300",
+  },
+
+  {
+    id: "lent",
+    label: "Money Lent",
+    description:
+      "Money someone owes you.",
+    Icon: PiggyBank,
+    activeClass:
+      "border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
+    iconClass:
+      "bg-emerald-500/10 text-emerald-500 dark:text-emerald-300",
+  },
+
+  {
+    id: "other",
+    label: "Other",
+    description:
+      "Other unpaid financial obligation.",
+    Icon: WalletCards,
+    activeClass:
+      "border-cyan-500 bg-cyan-500/10 text-cyan-600 dark:text-cyan-300",
+    iconClass:
+      "bg-cyan-500/10 text-cyan-500 dark:text-cyan-300",
   },
 ];
 
 /* =========================================================
-   SORT OPTIONS
+   HELPERS
 ========================================================= */
 
-const sortOptions = [
-  {
-    value: "newest",
-    label: "Newest First",
-  },
-  {
-    value: "oldest",
-    label: "Oldest First",
-  },
-  {
-    value: "amount-high",
-    label: "Highest Amount",
-  },
-  {
-    value: "amount-low",
-    label: "Lowest Amount",
-  },
-];
+function getToday() {
+  const now = new Date();
 
-/* =========================================================
-   SAFE NUMBER
-========================================================= */
+  const year =
+    now.getFullYear();
 
-function toSafeNumber(value) {
-  const number =
-    Number(value);
+  const month = String(
+    now.getMonth() + 1
+  ).padStart(2, "0");
 
-  return Number.isFinite(number)
-    ? Math.max(0, number)
-    : 0;
+  const day = String(
+    now.getDate()
+  ).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
 }
 
-/* =========================================================
-   SAFE DATE TIMESTAMP
-========================================================= */
-
-function getTimestamp(value) {
+function toInputDate(value) {
   if (!value) {
-    return 0;
+    return "";
   }
 
   const date =
     new Date(value);
 
-  const timestamp =
-    date.getTime();
-
-  return Number.isNaN(timestamp)
-    ? 0
-    : timestamp;
-}
-
-/* =========================================================
-   SAFE DISPLAY DATE
-========================================================= */
-
-function getDisplayDate(value) {
-  if (!value) {
-    return "Date unavailable";
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+    return "";
   }
 
-  try {
-    return formatDebtDate(value);
-  } catch {
-    const date =
-      new Date(value);
+  const year =
+    date.getFullYear();
 
-    if (
-      Number.isNaN(
-        date.getTime()
-      )
-    ) {
-      return "Date unavailable";
-    }
+  const month = String(
+    date.getMonth() + 1
+  ).padStart(2, "0");
 
-    return date.toLocaleDateString();
-  }
+  const day = String(
+    date.getDate()
+  ).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
 }
 
-/* =========================================================
-   GET PAYMENT DATE
-========================================================= */
-
-function getPaymentDate(payment) {
-  return (
-    payment.paymentDate ||
-    payment.date ||
-    payment.paidAt ||
-    payment.receivedAt ||
-    payment.createdAt ||
-    payment.created_at ||
-    payment.updatedAt ||
-    payment.updated_at ||
-    ""
-  );
+function getDirection(type) {
+  return type === "lent"
+    ? "receivable"
+    : "payable";
 }
 
-/* =========================================================
-   GET PAYMENT AMOUNT
-========================================================= */
-
-function getPaymentAmount(payment) {
-  return toSafeNumber(
-    payment.amount ??
-      payment.paymentAmount ??
-      payment.value ??
-      payment.paidAmount ??
-      payment.receivedAmount
-  );
-}
-
-/* =========================================================
-   DETERMINE PAYMENT TYPE
-========================================================= */
-
-function getPaymentType(
-  payment,
-  debt
+function getInitialForm(
+  editingDebt,
+  defaultType
 ) {
-  const rawType =
-    String(
-      payment.paymentType ||
-        payment.action ||
-        payment.type ||
-        payment.direction ||
-        ""
-    ).toLowerCase();
-
-  if (
-    rawType.includes(
-      "receive"
-    ) ||
-    rawType.includes(
-      "collect"
-    ) ||
-    rawType === "receivable"
-  ) {
-    return "received";
-  }
-
-  if (
-    rawType.includes("paid") ||
-    rawType.includes("payment") ||
-    rawType === "payable"
-  ) {
-    return "paid";
-  }
-
-  if (
-    debt?.direction ===
-    "receivable"
-  ) {
-    return "received";
-  }
-
-  return "paid";
-}
-
-/* =========================================================
-   PAYMENT NOTE
-========================================================= */
-
-function getPaymentNote(payment) {
-  return (
-    payment.notes ||
-    payment.note ||
-    payment.description ||
-    payment.memo ||
-    ""
-  );
-}
-
-/* =========================================================
-   BUILD NORMALIZED HISTORY
-========================================================= */
-
-function normalizeHistoryItem(
-  item,
-  index,
-  debtMap
-) {
-  /*
-    Payment history may come from different
-    versions of DebtContext.
-
-    Supported examples:
-
-    {
-      id,
-      debtId,
-      amount,
-      date
-    }
-
-    {
-      payment: {...},
-      debt: {...}
-    }
-
-    {
-      id,
-      recordId,
-      paymentAmount,
-      paymentDate
-    }
-  */
-
-  const payment =
-    item?.payment || item || {};
-
-  const possibleDebtId =
-    item?.debtId ||
-    item?.debt_id ||
-    item?.recordId ||
-    item?.record_id ||
-    item?.parentId ||
-    item?.parent_id ||
-    payment?.debtId ||
-    payment?.debt_id ||
-    payment?.recordId ||
-    item?.debt?.id ||
-    "";
-
-  let debt = null;
-
-  if (item?.debt) {
-    debt =
-      normalizeDebtRecord(
-        item.debt
-      );
-  } else if (
-    possibleDebtId &&
-    debtMap.has(possibleDebtId)
-  ) {
-    debt =
-      debtMap.get(
-        possibleDebtId
-      );
-  }
-
-  const amount =
-    getPaymentAmount(payment);
-
-  const date =
-    getPaymentDate(payment);
-
-  const paymentType =
-    getPaymentType(
-      payment,
-      debt
-    );
+  const type =
+    editingDebt?.type ||
+    defaultType ||
+    "loan";
 
   return {
-    id:
-      payment.id ||
-      item?.id ||
-      `${possibleDebtId || "payment"}-${
-        date || "unknown-date"
-      }-${index}`,
-
-    debtId: possibleDebtId,
-
-    amount,
-
-    date,
-
-    paymentType,
+    type,
 
     title:
-      payment.debtTitle ||
-      item?.debtTitle ||
-      item?.title ||
-      debt?.title ||
-      "Debt Payment",
+      editingDebt?.title ||
+      "",
 
     partyName:
-      payment.partyName ||
-      item?.partyName ||
-      debt?.partyName ||
+      editingDebt?.partyName ||
+      editingDebt?.personName ||
+      editingDebt?.lenderName ||
+      editingDebt?.borrowerName ||
       "",
 
-    debtType:
-      payment.debtType ||
-      item?.debtType ||
-      debt?.type ||
+    totalAmount:
+      editingDebt?.totalAmount ??
+      editingDebt?.amount ??
       "",
 
-    notes:
-      getPaymentNote(
-        payment
+    interestRate:
+      editingDebt?.interestRate ??
+      "",
+
+    installmentAmount:
+      editingDebt?.installmentAmount ??
+      "",
+
+    totalInstallments:
+      editingDebt?.totalInstallments ??
+      "",
+
+    startDate:
+      toInputDate(
+        editingDebt?.startDate
+      ) || getToday(),
+
+    nextDueDate:
+      toInputDate(
+        editingDebt?.nextDueDate
       ),
 
-    debt,
+    notes:
+      editingDebt?.notes ||
+      editingDebt?.note ||
+      "",
   };
 }
 
 /* =========================================================
-   SUMMARY CARD
+   LABEL
 ========================================================= */
 
-function PaymentSummaryCard({
-  title,
-  value,
-  description,
-  icon: Icon,
-  classes,
-  delay = 0,
+function FieldLabel({
+  children,
+  required = false,
 }) {
   return (
-    <motion.article
-      initial={{
-        opacity: 0,
-        y: 10,
-      }}
-      animate={{
-        opacity: 1,
-        y: 0,
-      }}
-      transition={{
-        duration: 0.3,
-        delay,
-      }}
+    <label
       className="
-        relative
-        min-w-0
-        overflow-hidden
-        rounded-[22px]
-        border
-        border-slate-200/80
-        bg-white
-        p-4
-        shadow-sm
-        dark:border-white/[0.08]
-        dark:bg-[#0a1427]
+        mb-2
+        block
+        text-[10px]
+        font-black
+        uppercase
+        tracking-[0.1em]
+        text-slate-500
+        dark:text-slate-400
       "
     >
-      <div
-        className="
-          pointer-events-none
-          absolute
-          -right-12
-          -top-12
-          h-28
-          w-28
-          rounded-full
-          bg-blue-500/[0.05]
-          blur-[50px]
-        "
-      />
+      {children}
 
-      <div className="relative">
-        <div
-          className={`
-            flex
-            h-10
-            w-10
-            items-center
-            justify-center
-            rounded-xl
-            ${classes}
-          `}
-        >
-          <Icon size={17} />
-        </div>
-
-        <p
-          className="
-            mt-4
-            text-[8px]
-            font-black
-            uppercase
-            tracking-[0.13em]
-            text-slate-500
-            dark:text-slate-400
-          "
-        >
-          {title}
-        </p>
-
-        <p
-          className="
-            mt-1.5
-            truncate
-            text-xl
-            font-black
-            tracking-tight
-            text-slate-950
-            dark:text-white
-          "
-        >
-          {value}
-        </p>
-
-        <p
-          className="
-            mt-1.5
-            text-[9px]
-            leading-4
-            text-slate-500
-            dark:text-slate-400
-          "
-        >
-          {description}
-        </p>
-      </div>
-    </motion.article>
+      {required && (
+        <span className="ml-1 text-rose-500">
+          *
+        </span>
+      )}
+    </label>
   );
 }
 
 /* =========================================================
-   PAYMENT HISTORY ROW
+   INPUT CLASS
 ========================================================= */
 
-function PaymentHistoryRow({
-  payment,
-  index,
-}) {
-  const received =
-    payment.paymentType ===
-    "received";
+const inputClass = `
+  h-12
+  w-full
+  rounded-2xl
+  border
+  border-slate-200
+  bg-slate-50
+  px-4
+  text-sm
+  font-semibold
+  text-slate-900
+  outline-none
+  transition
 
-  return (
-    <motion.article
-      initial={{
-        opacity: 0,
-        y: 8,
-      }}
-      animate={{
-        opacity: 1,
-        y: 0,
-      }}
-      transition={{
-        duration: 0.28,
-        delay:
-          Math.min(index, 8) *
-          0.03,
+  placeholder:text-slate-400
+
+  focus:border-blue-500
+  focus:bg-white
+  focus:ring-4
+  focus:ring-blue-500/10
+
+  dark:border-white/[0.08]
+  dark:bg-white/[0.04]
+  dark:text-white
+  dark:placeholder:text-slate-600
+  dark:focus:border-cyan-500/40
+  dark:focus:bg-white/[0.055]
+  dark:focus:ring-cyan-500/10
+`;
+
+/* =========================================================
+   DEBT FORM MODAL
+========================================================= */
+
+function DebtFormModal({
+  open = false,
+  editingDebt = null,
+  defaultType = "loan",
+  onClose,
+}) {
+  /* =======================================================
+     CONTEXT
+  ======================================================= */
+
+  const debtContext =
+    useDebt() || {};
+
+  const {
+    addDebt,
+    editDebt,
+  } = debtContext;
+
+  /* =======================================================
+     STATE
+  ======================================================= */
+
+  const [
+    formData,
+    setFormData,
+  ] = useState(() =>
+    getInitialForm(
+      editingDebt,
+      defaultType
+    )
+  );
+
+  const [
+    errors,
+    setErrors,
+  ] = useState({});
+
+  const [
+    submitting,
+    setSubmitting,
+  ] = useState(false);
+
+  /* =======================================================
+     RESET FORM WHEN OPENING
+  ======================================================= */
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    setFormData(
+      getInitialForm(
+        editingDebt,
+        defaultType
+      )
+    );
+
+    setErrors({});
+    setSubmitting(false);
+  }, [
+    open,
+    editingDebt,
+    defaultType,
+  ]);
+
+  /* =======================================================
+     BODY SCROLL LOCK
+  ======================================================= */
+
+  useEffect(() => {
+    if (!open) {
+      return undefined;
+    }
+
+    const previousOverflow =
+      document.body.style
+        .overflow;
+
+    document.body.style.overflow =
+      "hidden";
+
+    return () => {
+      document.body.style.overflow =
+        previousOverflow;
+    };
+  }, [open]);
+
+  /* =======================================================
+     ESCAPE CLOSE
+  ======================================================= */
+
+  useEffect(() => {
+    if (!open) {
+      return undefined;
+    }
+
+    const handleKeyDown = (
+      event
+    ) => {
+      if (
+        event.key ===
+        "Escape"
+      ) {
+        if (!submitting) {
+          onClose?.();
+        }
+      }
+    };
+
+    window.addEventListener(
+      "keydown",
+      handleKeyDown
+    );
+
+    return () => {
+      window.removeEventListener(
+        "keydown",
+        handleKeyDown
+      );
+    };
+  }, [
+    open,
+    submitting,
+    onClose,
+  ]);
+
+  /* =======================================================
+     SELECTED TYPE
+  ======================================================= */
+
+  const selectedType =
+    useMemo(() => {
+      return (
+        DEBT_TYPES.find(
+          (item) =>
+            item.id ===
+            formData.type
+        ) ||
+        DEBT_TYPES[0]
+      );
+    }, [formData.type]);
+
+  /*
+    IMPORTANT FIX:
+
+    Do NOT write:
+
+    <selectedType.icon />
+
+    React component variables must begin
+    with an uppercase character.
+  */
+
+  const SelectedTypeIcon =
+    selectedType.Icon;
+
+  /* =======================================================
+     INSTALLMENT TYPE
+  ======================================================= */
+
+  const showInstallments =
+    formData.type ===
+      "loan" ||
+    formData.type === "emi";
+
+  /* =======================================================
+     UPDATE FIELD
+  ======================================================= */
+
+  const updateField = (
+    name,
+    value
+  ) => {
+    setFormData(
+      (current) => ({
+        ...current,
+        [name]: value,
+      })
+    );
+
+    setErrors(
+      (current) => {
+        if (
+          !current[name]
+        ) {
+          return current;
+        }
+
+        const next = {
+          ...current,
+        };
+
+        delete next[name];
+
+        return next;
+      }
+    );
+  };
+
+  /* =======================================================
+     VALIDATION
+  ======================================================= */
+
+  const validateForm = () => {
+    const nextErrors = {};
+
+    const title =
+      formData.title.trim();
+
+    const amount =
+      Number(
+        formData.totalAmount
+      );
+
+    const interestRate =
+      formData.interestRate ===
+      ""
+        ? 0
+        : Number(
+            formData.interestRate
+          );
+
+    const installmentAmount =
+      formData
+        .installmentAmount ===
+      ""
+        ? 0
+        : Number(
+            formData
+              .installmentAmount
+          );
+
+    const totalInstallments =
+      formData
+        .totalInstallments ===
+      ""
+        ? 0
+        : Number(
+            formData
+              .totalInstallments
+          );
+
+    if (!title) {
+      nextErrors.title =
+        "Debt title is required.";
+    }
+
+    if (
+      !Number.isFinite(
+        amount
+      ) ||
+      amount <= 0
+    ) {
+      nextErrors.totalAmount =
+        "Enter a valid amount greater than 0.";
+    }
+
+    if (
+      !Number.isFinite(
+        interestRate
+      ) ||
+      interestRate < 0 ||
+      interestRate > 100
+    ) {
+      nextErrors.interestRate =
+        "Interest rate must be between 0 and 100.";
+    }
+
+    if (
+      showInstallments &&
+      formData
+        .installmentAmount !==
+        "" &&
+      (!Number.isFinite(
+        installmentAmount
+      ) ||
+        installmentAmount <=
+          0)
+    ) {
+      nextErrors.installmentAmount =
+        "Enter a valid installment amount.";
+    }
+
+    if (
+      showInstallments &&
+      formData
+        .totalInstallments !==
+        "" &&
+      (!Number.isInteger(
+        totalInstallments
+      ) ||
+        totalInstallments <=
+          0)
+    ) {
+      nextErrors.totalInstallments =
+        "Installments must be a positive whole number.";
+    }
+
+    if (
+      formData.startDate &&
+      formData.nextDueDate
+    ) {
+      const start =
+        new Date(
+          `${formData.startDate}T00:00:00`
+        );
+
+      const due =
+        new Date(
+          `${formData.nextDueDate}T00:00:00`
+        );
+
+      if (
+        due.getTime() <
+        start.getTime()
+      ) {
+        nextErrors.nextDueDate =
+          "Due date cannot be before the start date.";
+      }
+    }
+
+    setErrors(
+      nextErrors
+    );
+
+    return (
+      Object.keys(
+        nextErrors
+      ).length === 0
+    );
+  };
+
+  /* =======================================================
+     SUBMIT
+  ======================================================= */
+
+  const handleSubmit =
+    async (event) => {
+      event.preventDefault();
+
+      if (submitting) {
+        return;
+      }
+
+      if (!validateForm()) {
+        toast.error(
+          "Please check the highlighted fields."
+        );
+
+        return;
+      }
+
+      const isEditing =
+        Boolean(
+          editingDebt?.id
+        );
+
+      /*
+        This check makes debugging much easier.
+        If DebtContext is not exposing addDebt,
+        you will now see an actual toast instead
+        of a dead button.
+      */
+
+      if (
+        !isEditing &&
+        typeof addDebt !==
+          "function"
+      ) {
+        toast.error(
+          "Debt add function is unavailable."
+        );
+
+        console.error(
+          "DebtFormModal: addDebt is not available from DebtContext."
+        );
+
+        return;
+      }
+
+      if (
+        isEditing &&
+        typeof editDebt !==
+          "function"
+      ) {
+        toast.error(
+          "Debt edit function is unavailable."
+        );
+
+        console.error(
+          "DebtFormModal: editDebt is not available from DebtContext."
+        );
+
+        return;
+      }
+
+      setSubmitting(true);
+
+      try {
+        const totalAmount =
+          Number(
+            formData.totalAmount
+          );
+
+        const interestRate =
+          Number(
+            formData
+              .interestRate ||
+              0
+          );
+
+        const installmentAmount =
+          Number(
+            formData
+              .installmentAmount ||
+              0
+          );
+
+        const totalInstallments =
+          Number(
+            formData
+              .totalInstallments ||
+              0
+          );
+
+        const payload = {
+          type:
+            formData.type,
+
+          direction:
+            getDirection(
+              formData.type
+            ),
+
+          title:
+            formData.title.trim(),
+
+          partyName:
+            formData.partyName.trim(),
+
+          totalAmount,
+
+          amount:
+            totalAmount,
+
+          interestRate,
+
+          installmentAmount:
+            showInstallments
+              ? installmentAmount
+              : 0,
+
+          totalInstallments:
+            showInstallments
+              ? totalInstallments
+              : 0,
+
+          startDate:
+            formData.startDate ||
+            getToday(),
+
+          nextDueDate:
+            formData.nextDueDate ||
+            "",
+
+          notes:
+            formData.notes.trim(),
+        };
+
+        if (isEditing) {
+          await Promise.resolve(
+            editDebt(
+              editingDebt.id,
+              payload
+            )
+          );
+
+          toast.success(
+            "Debt record updated successfully."
+          );
+        } else {
+          await Promise.resolve(
+            addDebt(payload)
+          );
+
+          toast.success(
+            formData.type ===
+              "lent"
+              ? "Money lent record added."
+              : formData.type ===
+                  "borrowed"
+                ? "Borrowed money added."
+                : formData.type ===
+                    "emi"
+                  ? "EMI added successfully."
+                  : "Debt record added successfully."
+          );
+        }
+
+        onClose?.();
+      } catch (error) {
+        console.error(
+          "DebtFormModal submit error:",
+          error
+        );
+
+        toast.error(
+          error?.message ||
+            "Unable to save debt record."
+        );
+      } finally {
+        setSubmitting(false);
+      }
+    };
+
+  /* =======================================================
+     DON'T RENDER WHEN CLOSED
+  ======================================================= */
+
+  if (
+    !open ||
+    typeof document ===
+      "undefined"
+  ) {
+    return null;
+  }
+
+  /* =======================================================
+     PORTAL
+  ======================================================= */
+
+  return createPortal(
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={
+        editingDebt
+          ? "Edit debt record"
+          : "Add debt record"
+      }
+      onMouseDown={(
+        event
+      ) => {
+        if (
+          event.target ===
+            event.currentTarget &&
+          !submitting
+        ) {
+          onClose?.();
+        }
       }}
       className="
-        group
-        relative
-        min-w-0
-        overflow-hidden
-        rounded-[22px]
-        border
-        border-slate-200/80
-        bg-white
-        p-4
-        shadow-sm
-        transition-all
-        duration-300
-        hover:-translate-y-0.5
-        hover:border-blue-500/20
-        hover:shadow-md
-        dark:border-white/[0.07]
-        dark:bg-white/[0.025]
-        sm:p-5
+        fixed
+        inset-0
+        z-[99999]
+
+        flex
+        items-center
+        justify-center
+
+        overflow-y-auto
+
+        bg-slate-950/80
+
+        px-4
+        py-6
+
+        backdrop-blur-md
       "
     >
-      {/* Background glow */}
+      <motion.div
+        initial={{
+          opacity: 0,
+          y: 18,
+          scale: 0.97,
+        }}
+        animate={{
+          opacity: 1,
+          y: 0,
+          scale: 1,
+        }}
+        transition={{
+          duration: 0.22,
+        }}
+        onMouseDown={(
+          event
+        ) =>
+          event.stopPropagation()
+        }
+        className="
+          relative
+          my-auto
+          w-full
+          max-w-3xl
 
-      <div
-        className={`
-          pointer-events-none
-          absolute
-          -right-16
-          -top-16
-          h-36
-          w-36
-          rounded-full
-          blur-[70px]
+          overflow-hidden
 
-          ${
-            received
-              ? "bg-emerald-500/[0.05]"
-              : "bg-blue-500/[0.05]"
-          }
-        `}
-      />
+          rounded-[30px]
 
-      <div className="relative">
+          border
+          border-slate-200
+
+          bg-white
+
+          shadow-2xl
+          shadow-black/30
+
+          dark:border-white/[0.09]
+          dark:bg-[#081326]
+        "
+      >
+        {/* =================================================
+            HEADER BACKGROUND
+        ================================================== */}
+
         <div
           className="
+            pointer-events-none
+            absolute
+            -right-24
+            -top-24
+            h-64
+            w-64
+            rounded-full
+            bg-cyan-500/10
+            blur-[100px]
+          "
+        />
+
+        <div
+          className="
+            pointer-events-none
+            absolute
+            -left-24
+            top-1/3
+            h-64
+            w-64
+            rounded-full
+            bg-violet-500/[0.07]
+            blur-[110px]
+          "
+        />
+
+        {/* =================================================
+            HEADER
+        ================================================== */}
+
+        <div
+          className="
+            relative
             flex
-            min-w-0
-            flex-col
+            items-start
+            justify-between
             gap-4
-            lg:flex-row
-            lg:items-center
+
+            border-b
+            border-slate-200
+
+            p-5
+
+            dark:border-white/[0.07]
+
+            sm:p-6
           "
         >
-          {/* =================================================
-              ICON + INFORMATION
-          ================================================== */}
-
           <div
             className="
               flex
               min-w-0
-              flex-1
               items-start
-              gap-3
+              gap-4
             "
           >
             <div
               className={`
                 flex
-                h-11
-                w-11
+                h-12
+                w-12
                 shrink-0
                 items-center
                 justify-center
                 rounded-2xl
-
-                ${
-                  received
-                    ? `
-                      bg-emerald-500/10
-                      text-emerald-600
-                      dark:text-emerald-300
-                    `
-                    : `
-                      bg-blue-500/10
-                      text-blue-600
-                      dark:text-blue-300
-                    `
-                }
+                ${selectedType.iconClass}
               `}
             >
-              {received ? (
-                <ArrowDownLeft
-                  size={18}
-                />
-              ) : (
-                <ArrowUpRight
-                  size={18}
-                />
-              )}
+              <SelectedTypeIcon
+                size={21}
+              />
             </div>
 
             <div className="min-w-0">
-              <div
+              <p
                 className="
-                  flex
-                  min-w-0
-                  flex-wrap
-                  items-center
-                  gap-2
+                  text-[9px]
+                  font-black
+                  uppercase
+                  tracking-[0.15em]
+                  text-cyan-600
+
+                  dark:text-cyan-300
                 "
               >
-                <h4
-                  className="
-                    break-words
-                    text-sm
-                    font-black
-                    text-slate-950
-                    dark:text-white
-                  "
-                >
-                  {payment.title}
-                </h4>
+                {editingDebt
+                  ? "Update liability"
+                  : "New debt record"}
+              </p>
 
-                <span
-                  className={`
-                    inline-flex
-                    items-center
-                    gap-1
-                    rounded-full
-                    border
-                    px-2.5
-                    py-1
-                    text-[8px]
-                    font-black
-
-                    ${
-                      received
-                        ? `
-                          border-emerald-500/20
-                          bg-emerald-500/10
-                          text-emerald-600
-                          dark:text-emerald-300
-                        `
-                        : `
-                          border-blue-500/20
-                          bg-blue-500/10
-                          text-blue-600
-                          dark:text-blue-300
-                        `
-                    }
-                  `}
-                >
-                  {received ? (
-                    <HandCoins
-                      size={10}
-                    />
-                  ) : (
-                    <Banknote
-                      size={10}
-                    />
-                  )}
-
-                  {received
-                    ? "Received"
-                    : "Paid"}
-                </span>
-              </div>
-
-              {/* Meta */}
-
-              <div
+              <h2
                 className="
-                  mt-2
-                  flex
-                  min-w-0
-                  flex-wrap
-                  items-center
-                  gap-x-4
-                  gap-y-1.5
+                  mt-1
+
+                  text-xl
+                  font-black
+                  tracking-tight
+                  text-slate-950
+
+                  dark:text-white
+
+                  sm:text-2xl
                 "
               >
-                {payment.debtType && (
-                  <span
-                    className="
-                      inline-flex
-                      items-center
-                      gap-1.5
-                      text-[9px]
-                      text-slate-500
-                      dark:text-slate-400
-                    "
-                  >
-                    <ReceiptText
-                      size={11}
-                    />
+                {editingDebt
+                  ? "Edit Debt"
+                  : "Add Debt Record"}
+              </h2>
 
-                    {getDebtTypeLabel(
-                      payment.debtType
-                    )}
-                  </span>
-                )}
+              <p
+                className="
+                  mt-1.5
 
-                {payment.partyName && (
-                  <span
-                    className="
-                      inline-flex
-                      min-w-0
-                      items-center
-                      gap-1.5
-                      text-[9px]
-                      text-slate-500
-                      dark:text-slate-400
-                    "
-                  >
-                    <UserRound
-                      size={11}
-                    />
+                  text-[10px]
+                  leading-5
+                  text-slate-500
 
-                    <span className="truncate">
-                      {
-                        payment.partyName
-                      }
-                    </span>
-                  </span>
-                )}
-
-                <span
-                  className="
-                    inline-flex
-                    items-center
-                    gap-1.5
-                    text-[9px]
-                    text-slate-500
-                    dark:text-slate-400
-                  "
-                >
-                  <CalendarDays
-                    size={11}
-                  />
-
-                  {getDisplayDate(
-                    payment.date
-                  )}
-                </span>
-              </div>
+                  dark:text-slate-400
+                "
+              >
+                Track loans, EMIs,
+                borrowed money and money
+                you have lent.
+              </p>
             </div>
           </div>
 
+          <button
+            type="button"
+            disabled={
+              submitting
+            }
+            onClick={() =>
+              onClose?.()
+            }
+            className="
+              flex
+              h-10
+              w-10
+              shrink-0
+              items-center
+              justify-center
+
+              rounded-xl
+
+              border
+              border-slate-200
+
+              text-slate-500
+
+              transition
+
+              hover:bg-slate-100
+              hover:text-slate-900
+
+              disabled:cursor-not-allowed
+              disabled:opacity-50
+
+              dark:border-white/[0.08]
+              dark:bg-white/[0.03]
+              dark:text-slate-400
+              dark:hover:bg-white/[0.07]
+              dark:hover:text-white
+            "
+          >
+            <X size={17} />
+          </button>
+        </div>
+
+        {/* =================================================
+            FORM
+        ================================================== */}
+
+        <form
+          onSubmit={
+            handleSubmit
+          }
+          className="
+            relative
+            max-h-[calc(100vh-140px)]
+            overflow-y-auto
+          "
+        >
+          <div
+            className="
+              space-y-7
+              p-5
+              sm:p-6
+            "
+          >
+            {/* =============================================
+                TYPE
+            ============================================== */}
+
+            <section>
+              <div className="mb-3">
+                <p
+                  className="
+                    text-[10px]
+                    font-black
+                    uppercase
+                    tracking-[0.12em]
+                    text-slate-500
+
+                    dark:text-slate-400
+                  "
+                >
+                  01 · Record type
+                </p>
+
+                <h3
+                  className="
+                    mt-1
+                    text-sm
+                    font-black
+                    text-slate-950
+
+                    dark:text-white
+                  "
+                >
+                  What are you tracking?
+                </h3>
+              </div>
+
+              <div
+                className="
+                  grid
+                  gap-3
+
+                  sm:grid-cols-2
+                  lg:grid-cols-5
+                "
+              >
+                {DEBT_TYPES.map(
+                  (item) => {
+                    const TypeIcon =
+                      item.Icon;
+
+                    const active =
+                      formData.type ===
+                      item.id;
+
+                    return (
+                      <button
+                        key={
+                          item.id
+                        }
+                        type="button"
+                        onClick={() =>
+                          updateField(
+                            "type",
+                            item.id
+                          )
+                        }
+                        className={`
+                          relative
+
+                          flex
+                          min-h-[115px]
+                          flex-col
+                          items-start
+
+                          rounded-2xl
+
+                          border
+
+                          p-3
+
+                          text-left
+
+                          transition
+                          duration-200
+
+                          ${
+                            active
+                              ? item.activeClass
+                              : `
+                                border-slate-200
+                                bg-slate-50
+                                text-slate-600
+
+                                hover:border-blue-500/30
+                                hover:bg-blue-500/[0.04]
+
+                                dark:border-white/[0.07]
+                                dark:bg-white/[0.03]
+                                dark:text-slate-300
+                              `
+                          }
+                        `}
+                      >
+                        <div
+                          className={`
+                            flex
+                            h-9
+                            w-9
+                            items-center
+                            justify-center
+                            rounded-xl
+                            ${item.iconClass}
+                          `}
+                        >
+                          <TypeIcon
+                            size={16}
+                          />
+                        </div>
+
+                        <span
+                          className="
+                            mt-3
+                            text-[10px]
+                            font-black
+                          "
+                        >
+                          {item.label}
+                        </span>
+
+                        <span
+                          className="
+                            mt-1
+                            text-[8px]
+                            leading-4
+                            opacity-70
+                          "
+                        >
+                          {
+                            item.description
+                          }
+                        </span>
+
+                        {active && (
+                          <span
+                            className="
+                              absolute
+                              right-2.5
+                              top-2.5
+
+                              flex
+                              h-5
+                              w-5
+                              items-center
+                              justify-center
+
+                              rounded-full
+
+                              bg-blue-500
+                              text-white
+                            "
+                          >
+                            <Check
+                              size={11}
+                            />
+                          </span>
+                        )}
+                      </button>
+                    );
+                  }
+                )}
+              </div>
+            </section>
+
+            {/* =============================================
+                BASIC INFORMATION
+            ============================================== */}
+
+            <section>
+              <div className="mb-4">
+                <p
+                  className="
+                    text-[10px]
+                    font-black
+                    uppercase
+                    tracking-[0.12em]
+                    text-slate-500
+
+                    dark:text-slate-400
+                  "
+                >
+                  02 · Basic information
+                </p>
+
+                <h3
+                  className="
+                    mt-1
+                    text-sm
+                    font-black
+                    text-slate-950
+
+                    dark:text-white
+                  "
+                >
+                  Debt details
+                </h3>
+              </div>
+
+              <div
+                className="
+                  grid
+                  gap-4
+
+                  md:grid-cols-2
+                "
+              >
+                <div>
+                  <FieldLabel
+                    required
+                  >
+                    Title
+                  </FieldLabel>
+
+                  <div className="relative">
+                    <FileText
+                      size={16}
+                      className="
+                        pointer-events-none
+                        absolute
+                        left-4
+                        top-1/2
+                        -translate-y-1/2
+                        text-slate-400
+                      "
+                    />
+
+                    <input
+                      type="text"
+                      value={
+                        formData.title
+                      }
+                      onChange={(
+                        event
+                      ) =>
+                        updateField(
+                          "title",
+                          event
+                            .target
+                            .value
+                        )
+                      }
+                      placeholder="Example: Personal Loan"
+                      className={`${inputClass} pl-11`}
+                    />
+                  </div>
+
+                  {errors.title && (
+                    <p
+                      className="
+                        mt-2
+                        text-[10px]
+                        font-semibold
+                        text-rose-500
+                      "
+                    >
+                      {errors.title}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <FieldLabel>
+                    Person /
+                    Institution
+                  </FieldLabel>
+
+                  <div className="relative">
+                    <UserRound
+                      size={16}
+                      className="
+                        pointer-events-none
+                        absolute
+                        left-4
+                        top-1/2
+                        -translate-y-1/2
+                        text-slate-400
+                      "
+                    />
+
+                    <input
+                      type="text"
+                      value={
+                        formData.partyName
+                      }
+                      onChange={(
+                        event
+                      ) =>
+                        updateField(
+                          "partyName",
+                          event
+                            .target
+                            .value
+                        )
+                      }
+                      placeholder={
+                        formData.type ===
+                        "lent"
+                          ? "Who owes you?"
+                          : "Bank, lender or person"
+                      }
+                      className={`${inputClass} pl-11`}
+                    />
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* =============================================
+                AMOUNT
+            ============================================== */}
+
+            <section>
+              <div className="mb-4">
+                <p
+                  className="
+                    text-[10px]
+                    font-black
+                    uppercase
+                    tracking-[0.12em]
+                    text-slate-500
+
+                    dark:text-slate-400
+                  "
+                >
+                  03 · Financial details
+                </p>
+
+                <h3
+                  className="
+                    mt-1
+                    text-sm
+                    font-black
+                    text-slate-950
+
+                    dark:text-white
+                  "
+                >
+                  Amount information
+                </h3>
+              </div>
+
+              <div
+                className="
+                  grid
+                  gap-4
+                  md:grid-cols-2
+                "
+              >
+                <div>
+                  <FieldLabel
+                    required
+                  >
+                    Total Amount
+                  </FieldLabel>
+
+                  <div className="relative">
+                    <CircleDollarSign
+                      size={16}
+                      className="
+                        pointer-events-none
+                        absolute
+                        left-4
+                        top-1/2
+                        -translate-y-1/2
+                        text-slate-400
+                      "
+                    />
+
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={
+                        formData.totalAmount
+                      }
+                      onChange={(
+                        event
+                      ) =>
+                        updateField(
+                          "totalAmount",
+                          event
+                            .target
+                            .value
+                        )
+                      }
+                      placeholder="0"
+                      className={`${inputClass} pl-11`}
+                    />
+                  </div>
+
+                  {errors.totalAmount && (
+                    <p
+                      className="
+                        mt-2
+                        text-[10px]
+                        font-semibold
+                        text-rose-500
+                      "
+                    >
+                      {
+                        errors.totalAmount
+                      }
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <FieldLabel>
+                    Interest Rate
+                  </FieldLabel>
+
+                  <div className="relative">
+                    <Banknote
+                      size={16}
+                      className="
+                        pointer-events-none
+                        absolute
+                        left-4
+                        top-1/2
+                        -translate-y-1/2
+                        text-slate-400
+                      "
+                    />
+
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      value={
+                        formData.interestRate
+                      }
+                      onChange={(
+                        event
+                      ) =>
+                        updateField(
+                          "interestRate",
+                          event
+                            .target
+                            .value
+                        )
+                      }
+                      placeholder="0%"
+                      className={`${inputClass} pl-11`}
+                    />
+                  </div>
+
+                  {errors.interestRate && (
+                    <p
+                      className="
+                        mt-2
+                        text-[10px]
+                        font-semibold
+                        text-rose-500
+                      "
+                    >
+                      {
+                        errors.interestRate
+                      }
+                    </p>
+                  )}
+                </div>
+              </div>
+            </section>
+
+            {/* =============================================
+                INSTALLMENTS
+            ============================================== */}
+
+            {showInstallments && (
+              <section>
+                <div className="mb-4">
+                  <p
+                    className="
+                      text-[10px]
+                      font-black
+                      uppercase
+                      tracking-[0.12em]
+                      text-slate-500
+
+                      dark:text-slate-400
+                    "
+                  >
+                    04 · Repayment plan
+                  </p>
+
+                  <h3
+                    className="
+                      mt-1
+                      text-sm
+                      font-black
+                      text-slate-950
+
+                      dark:text-white
+                    "
+                  >
+                    Installment details
+                  </h3>
+                </div>
+
+                <div
+                  className="
+                    grid
+                    gap-4
+
+                    md:grid-cols-2
+                  "
+                >
+                  <div>
+                    <FieldLabel>
+                      Installment
+                      Amount
+                    </FieldLabel>
+
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={
+                        formData.installmentAmount
+                      }
+                      onChange={(
+                        event
+                      ) =>
+                        updateField(
+                          "installmentAmount",
+                          event
+                            .target
+                            .value
+                        )
+                      }
+                      placeholder="Example: 5000"
+                      className={
+                        inputClass
+                      }
+                    />
+
+                    {errors.installmentAmount && (
+                      <p
+                        className="
+                          mt-2
+                          text-[10px]
+                          font-semibold
+                          text-rose-500
+                        "
+                      >
+                        {
+                          errors.installmentAmount
+                        }
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <FieldLabel>
+                      Total
+                      Installments
+                    </FieldLabel>
+
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={
+                        formData.totalInstallments
+                      }
+                      onChange={(
+                        event
+                      ) =>
+                        updateField(
+                          "totalInstallments",
+                          event
+                            .target
+                            .value
+                        )
+                      }
+                      placeholder="Example: 12"
+                      className={
+                        inputClass
+                      }
+                    />
+
+                    {errors.totalInstallments && (
+                      <p
+                        className="
+                          mt-2
+                          text-[10px]
+                          font-semibold
+                          text-rose-500
+                        "
+                      >
+                        {
+                          errors.totalInstallments
+                        }
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {/* =============================================
+                DATES
+            ============================================== */}
+
+            <section>
+              <div className="mb-4">
+                <p
+                  className="
+                    text-[10px]
+                    font-black
+                    uppercase
+                    tracking-[0.12em]
+                    text-slate-500
+
+                    dark:text-slate-400
+                  "
+                >
+                  {showInstallments
+                    ? "05"
+                    : "04"}{" "}
+                  · Schedule
+                </p>
+
+                <h3
+                  className="
+                    mt-1
+                    text-sm
+                    font-black
+                    text-slate-950
+
+                    dark:text-white
+                  "
+                >
+                  Important dates
+                </h3>
+              </div>
+
+              <div
+                className="
+                  grid
+                  gap-4
+
+                  md:grid-cols-2
+                "
+              >
+                <div>
+                  <FieldLabel>
+                    Start Date
+                  </FieldLabel>
+
+                  <div className="relative">
+                    <CalendarDays
+                      size={16}
+                      className="
+                        pointer-events-none
+                        absolute
+                        left-4
+                        top-1/2
+                        -translate-y-1/2
+                        text-slate-400
+                      "
+                    />
+
+                    <input
+                      type="date"
+                      value={
+                        formData.startDate
+                      }
+                      onChange={(
+                        event
+                      ) =>
+                        updateField(
+                          "startDate",
+                          event
+                            .target
+                            .value
+                        )
+                      }
+                      className={`${inputClass} pl-11`}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <FieldLabel>
+                    Next Due Date
+                  </FieldLabel>
+
+                  <div className="relative">
+                    <CalendarDays
+                      size={16}
+                      className="
+                        pointer-events-none
+                        absolute
+                        left-4
+                        top-1/2
+                        -translate-y-1/2
+                        text-slate-400
+                      "
+                    />
+
+                    <input
+                      type="date"
+                      value={
+                        formData.nextDueDate
+                      }
+                      onChange={(
+                        event
+                      ) =>
+                        updateField(
+                          "nextDueDate",
+                          event
+                            .target
+                            .value
+                        )
+                      }
+                      className={`${inputClass} pl-11`}
+                    />
+                  </div>
+
+                  {errors.nextDueDate && (
+                    <p
+                      className="
+                        mt-2
+                        text-[10px]
+                        font-semibold
+                        text-rose-500
+                      "
+                    >
+                      {
+                        errors.nextDueDate
+                      }
+                    </p>
+                  )}
+                </div>
+              </div>
+            </section>
+
+            {/* =============================================
+                NOTES
+            ============================================== */}
+
+            <section>
+              <FieldLabel>
+                Notes
+              </FieldLabel>
+
+              <textarea
+                rows={4}
+                value={
+                  formData.notes
+                }
+                onChange={(
+                  event
+                ) =>
+                  updateField(
+                    "notes",
+                    event.target
+                      .value
+                  )
+                }
+                placeholder="Add optional information about this debt..."
+                className="
+                  w-full
+                  resize-none
+
+                  rounded-2xl
+
+                  border
+                  border-slate-200
+
+                  bg-slate-50
+
+                  px-4
+                  py-3
+
+                  text-sm
+                  font-medium
+                  text-slate-900
+
+                  outline-none
+
+                  transition
+
+                  placeholder:text-slate-400
+
+                  focus:border-blue-500
+                  focus:bg-white
+                  focus:ring-4
+                  focus:ring-blue-500/10
+
+                  dark:border-white/[0.08]
+                  dark:bg-white/[0.04]
+                  dark:text-white
+                  dark:placeholder:text-slate-600
+                  dark:focus:border-cyan-500/40
+                  dark:focus:bg-white/[0.055]
+                "
+              />
+            </section>
+          </div>
+
           {/* =================================================
-              AMOUNT
+              FOOTER
           ================================================== */}
 
           <div
             className="
-              min-w-[150px]
-              rounded-2xl
-              border
-              border-slate-200/80
-              bg-slate-50/70
-              px-4
-              py-3
-              dark:border-white/[0.07]
-              dark:bg-black/[0.08]
-            "
-          >
-            <p
-              className="
-                text-[8px]
-                font-black
-                uppercase
-                tracking-wide
-                text-slate-500
-                dark:text-slate-400
-              "
-            >
-              {received
-                ? "Amount Received"
-                : "Amount Paid"}
-            </p>
+              sticky
+              bottom-0
 
-            <p
-              className={`
-                mt-1.5
-                truncate
-                text-base
-                font-black
+              flex
+              flex-col-reverse
+              gap-3
 
-                ${
-                  received
-                    ? `
-                      text-emerald-600
-                      dark:text-emerald-300
-                    `
-                    : `
-                      text-blue-600
-                      dark:text-blue-300
-                    `
-                }
-              `}
-            >
-              {received
-                ? "+"
-                : "-"}
-              {formatDebtCurrency(
-                payment.amount
-              )}
-            </p>
-          </div>
-        </div>
-
-        {/* =================================================
-            NOTES
-        ================================================== */}
-
-        {payment.notes && (
-          <div
-            className="
-              mt-4
-              rounded-2xl
-              border
-              border-slate-200/70
-              bg-slate-50/60
-              px-4
-              py-3
-              dark:border-white/[0.06]
-              dark:bg-black/[0.06]
-            "
-          >
-            <p
-              className="
-                text-[8px]
-                font-black
-                uppercase
-                tracking-wide
-                text-slate-500
-                dark:text-slate-400
-              "
-            >
-              Payment note
-            </p>
-
-            <p
-              className="
-                mt-1.5
-                text-[10px]
-                leading-5
-                text-slate-600
-                dark:text-slate-400
-              "
-            >
-              {payment.notes}
-            </p>
-          </div>
-        )}
-      </div>
-    </motion.article>
-  );
-}
-
-/* =========================================================
-   EMPTY STATE
-========================================================= */
-
-function EmptyPaymentHistory({
-  onAddDebt,
-}) {
-  return (
-    <motion.section
-      initial={{
-        opacity: 0,
-        y: 10,
-      }}
-      animate={{
-        opacity: 1,
-        y: 0,
-      }}
-      className="
-        relative
-        min-w-0
-        overflow-hidden
-        rounded-[28px]
-        border
-        border-slate-200/80
-        bg-white
-        p-6
-        shadow-sm
-        dark:border-white/[0.08]
-        dark:bg-[#0a1427]
-        sm:p-8
-      "
-    >
-      <div
-        className="
-          pointer-events-none
-          absolute
-          -right-20
-          -top-20
-          h-48
-          w-48
-          rounded-full
-          bg-violet-500/[0.07]
-          blur-[80px]
-        "
-      />
-
-      <div
-        className="
-          relative
-          flex
-          min-h-[240px]
-          flex-col
-          items-center
-          justify-center
-          text-center
-        "
-      >
-        <div
-          className="
-            flex
-            h-16
-            w-16
-            items-center
-            justify-center
-            rounded-[22px]
-            border
-            border-violet-500/20
-            bg-violet-500/10
-            text-violet-600
-            shadow-lg
-            shadow-violet-500/10
-            dark:text-violet-300
-          "
-        >
-          <History size={27} />
-        </div>
-
-        <h3
-          className="
-            mt-5
-            text-lg
-            font-black
-            text-slate-950
-            dark:text-white
-          "
-        >
-          No payment history yet
-        </h3>
-
-        <p
-          className="
-            mt-2
-            max-w-lg
-            text-xs
-            leading-5
-            text-slate-500
-            dark:text-slate-400
-          "
-        >
-          Payments and repayments will
-          appear here after you record
-          activity against a debt,
-          loan or money-lent record.
-        </p>
-
-        <div
-          className="
-            mt-4
-            inline-flex
-            items-center
-            gap-2
-            rounded-full
-            border
-            border-slate-200
-            bg-slate-50
-            px-3
-            py-2
-            text-[9px]
-            font-black
-            text-slate-500
-            dark:border-white/[0.08]
-            dark:bg-white/[0.035]
-            dark:text-slate-400
-          "
-        >
-          <CheckCircle2
-            size={13}
-          />
-
-          History will update automatically
-        </div>
-
-        {onAddDebt && (
-          <button
-            type="button"
-            onClick={onAddDebt}
-            className="
-              mt-5
-              inline-flex
-              min-h-10
-              items-center
-              justify-center
-              gap-2
-              rounded-xl
-              bg-gradient-to-r
-              from-cyan-500
-              via-blue-500
-              to-violet-500
-              px-4
-              py-2
-              text-[10px]
-              font-black
-              text-white
-              shadow-lg
-              shadow-blue-500/15
-              transition
-              hover:-translate-y-0.5
-            "
-          >
-            <Plus size={13} />
-
-            Add Debt Record
-          </button>
-        )}
-      </div>
-    </motion.section>
-  );
-}
-
-/* =========================================================
-   FILTERED EMPTY STATE
-========================================================= */
-
-function NoMatchingPayments({
-  onReset,
-}) {
-  return (
-    <div
-      className="
-        flex
-        min-h-[260px]
-        flex-col
-        items-center
-        justify-center
-        rounded-[26px]
-        border
-        border-dashed
-        border-slate-300
-        bg-white/60
-        p-6
-        text-center
-        dark:border-white/[0.09]
-        dark:bg-[#0a1427]/60
-      "
-    >
-      <div
-        className="
-          flex
-          h-14
-          w-14
-          items-center
-          justify-center
-          rounded-[20px]
-          bg-blue-500/10
-          text-blue-600
-          dark:text-blue-300
-        "
-      >
-        <Search size={22} />
-      </div>
-
-      <h3
-        className="
-          mt-4
-          text-base
-          font-black
-          text-slate-950
-          dark:text-white
-        "
-      >
-        No matching payments
-      </h3>
-
-      <p
-        className="
-          mt-2
-          max-w-md
-          text-[10px]
-          leading-5
-          text-slate-500
-          dark:text-slate-400
-        "
-      >
-        Try changing your search,
-        payment type or sorting options.
-      </p>
-
-      <button
-        type="button"
-        onClick={onReset}
-        className="
-          mt-4
-          inline-flex
-          min-h-10
-          items-center
-          justify-center
-          gap-2
-          rounded-xl
-          border
-          border-blue-500/20
-          bg-blue-500/10
-          px-4
-          py-2
-          text-[10px]
-          font-black
-          text-blue-600
-          dark:text-blue-300
-        "
-      >
-        <X size={13} />
-
-        Clear Filters
-      </button>
-    </div>
-  );
-}
-
-/* =========================================================
-   LOADING SKELETON
-========================================================= */
-
-function PaymentHistorySkeleton() {
-  return (
-    <div className="space-y-4">
-      <div
-        className="
-          grid
-          gap-3
-          sm:grid-cols-2
-          xl:grid-cols-4
-        "
-      >
-        {Array.from({
-          length: 4,
-        }).map((_, index) => (
-          <div
-            key={index}
-            className="
-              h-36
-              animate-pulse
-              rounded-[22px]
-              bg-slate-200
-              dark:bg-white/[0.05]
-            "
-          />
-        ))}
-      </div>
-
-      <div
-        className="
-          h-24
-          animate-pulse
-          rounded-[24px]
-          bg-slate-200
-          dark:bg-white/[0.05]
-        "
-      />
-
-      {Array.from({
-        length: 3,
-      }).map((_, index) => (
-        <div
-          key={index}
-          className="
-            h-32
-            animate-pulse
-            rounded-[22px]
-            bg-slate-200
-            dark:bg-white/[0.05]
-          "
-        />
-      ))}
-    </div>
-  );
-}
-
-/* =========================================================
-   DEBT PAYMENT HISTORY
-========================================================= */
-
-function DebtPaymentHistory({
-  onAddDebt,
-}) {
-  const {
-    debts,
-    paymentHistory,
-    loading,
-  } = useDebt();
-
-  const [
-    search,
-    setSearch,
-  ] = useState("");
-
-  const [
-    paymentType,
-    setPaymentType,
-  ] = useState("all");
-
-  const [
-    sort,
-    setSort,
-  ] = useState("newest");
-
-  /* =======================================================
-     NORMALIZED DEBTS
-  ======================================================= */
-
-  const normalizedDebts =
-    useMemo(() => {
-      return (
-        Array.isArray(debts)
-          ? debts
-          : []
-      ).map((record) =>
-        normalizeDebtRecord(
-          record
-        )
-      );
-    }, [debts]);
-
-  /* =======================================================
-     DEBT MAP
-  ======================================================= */
-
-  const debtMap =
-    useMemo(() => {
-      const map =
-        new Map();
-
-      normalizedDebts.forEach(
-        (record) => {
-          if (record.id) {
-            map.set(
-              record.id,
-              record
-            );
-          }
-        }
-      );
-
-      return map;
-    }, [normalizedDebts]);
-
-  /* =======================================================
-     FALLBACK PAYMENT HISTORY
-  ======================================================= */
-
-  const fallbackHistory =
-    useMemo(() => {
-      return normalizedDebts.flatMap(
-        (record) => {
-          const payments =
-            Array.isArray(
-              record.payments
-            )
-              ? record.payments
-              : Array.isArray(
-                    record.paymentHistory
-                  )
-                ? record.paymentHistory
-                : [];
-
-          return payments.map(
-            (payment) => ({
-              ...payment,
-              debtId:
-                payment.debtId ||
-                record.id,
-
-              debt: record,
-            })
-          );
-        }
-      );
-    }, [normalizedDebts]);
-
-  /* =======================================================
-     NORMALIZE HISTORY
-  ======================================================= */
-
-  const history =
-    useMemo(() => {
-      const source =
-        Array.isArray(
-          paymentHistory
-        ) &&
-        paymentHistory.length > 0
-          ? paymentHistory
-          : fallbackHistory;
-
-      return source
-        .map(
-          (
-            item,
-            index
-          ) =>
-            normalizeHistoryItem(
-              item,
-              index,
-              debtMap
-            )
-        )
-        .filter(
-          (item) =>
-            item.amount > 0
-        );
-    }, [
-      paymentHistory,
-      fallbackHistory,
-      debtMap,
-    ]);
-
-  /* =======================================================
-     SUMMARY
-  ======================================================= */
-
-  const summary =
-    useMemo(() => {
-      return history.reduce(
-        (result, payment) => {
-          result.count += 1;
-          result.total +=
-            payment.amount;
-
-          if (
-            payment.paymentType ===
-            "received"
-          ) {
-            result.received +=
-              payment.amount;
-          } else {
-            result.paid +=
-              payment.amount;
-          }
-
-          return result;
-        },
-        {
-          count: 0,
-          total: 0,
-          paid: 0,
-          received: 0,
-        }
-      );
-    }, [history]);
-
-  /* =======================================================
-     FILTER / SEARCH / SORT
-  ======================================================= */
-
-  const filteredHistory =
-    useMemo(() => {
-      const searchText =
-        search
-          .trim()
-          .toLowerCase();
-
-      const result =
-        history.filter(
-          (payment) => {
-            const searchable =
-              [
-                payment.title,
-                payment.partyName,
-                payment.notes,
-                payment.debtType,
-                payment.paymentType,
-              ]
-                .filter(Boolean)
-                .join(" ")
-                .toLowerCase();
-
-            const matchesSearch =
-              !searchText ||
-              searchable.includes(
-                searchText
-              );
-
-            const matchesType =
-              paymentType ===
-                "all" ||
-              payment.paymentType ===
-                paymentType;
-
-            return (
-              matchesSearch &&
-              matchesType
-            );
-          }
-        );
-
-      result.sort(
-        (first, second) => {
-          switch (sort) {
-            case "oldest":
-              return (
-                getTimestamp(
-                  first.date
-                ) -
-                getTimestamp(
-                  second.date
-                )
-              );
-
-            case "amount-high":
-              return (
-                second.amount -
-                first.amount
-              );
-
-            case "amount-low":
-              return (
-                first.amount -
-                second.amount
-              );
-
-            case "newest":
-            default:
-              return (
-                getTimestamp(
-                  second.date
-                ) -
-                getTimestamp(
-                  first.date
-                )
-              );
-          }
-        }
-      );
-
-      return result;
-    }, [
-      history,
-      search,
-      paymentType,
-      sort,
-    ]);
-
-  /* =======================================================
-     RESET
-  ======================================================= */
-
-  const hasFilters =
-    search.trim() ||
-    paymentType !== "all" ||
-    sort !== "newest";
-
-  const resetFilters = () => {
-    setSearch("");
-    setPaymentType("all");
-    setSort("newest");
-  };
-
-  /* =======================================================
-     LOADING
-  ======================================================= */
-
-  if (loading) {
-    return (
-      <PaymentHistorySkeleton />
-    );
-  }
-
-  /* =======================================================
-     EMPTY
-  ======================================================= */
-
-  if (history.length === 0) {
-    return (
-      <EmptyPaymentHistory
-        onAddDebt={onAddDebt}
-      />
-    );
-  }
-
-  return (
-    <div
-      className="
-        min-w-0
-        space-y-5
-      "
-    >
-      {/* ===================================================
-          SUMMARY CARDS
-      =================================================== */}
-
-      <div
-        className="
-          grid
-          min-w-0
-          gap-3
-          sm:grid-cols-2
-          xl:grid-cols-4
-        "
-      >
-        <PaymentSummaryCard
-          title="Total Activity"
-          value={formatDebtCurrency(
-            summary.total
-          )}
-          description="Combined paid and received repayments."
-          icon={
-            CircleDollarSign
-          }
-          classes="
-            bg-violet-500/10
-            text-violet-600
-            dark:text-violet-300
-          "
-          delay={0}
-        />
-
-        <PaymentSummaryCard
-          title="Total Paid"
-          value={formatDebtCurrency(
-            summary.paid
-          )}
-          description="Money paid toward debts and loans."
-          icon={Banknote}
-          classes="
-            bg-blue-500/10
-            text-blue-600
-            dark:text-blue-300
-          "
-          delay={0.04}
-        />
-
-        <PaymentSummaryCard
-          title="Total Received"
-          value={formatDebtCurrency(
-            summary.received
-          )}
-          description="Repayments collected from others."
-          icon={HandCoins}
-          classes="
-            bg-emerald-500/10
-            text-emerald-600
-            dark:text-emerald-300
-          "
-          delay={0.08}
-        />
-
-        <PaymentSummaryCard
-          title="Transactions"
-          value={
-            summary.count
-          }
-          description="Recorded repayment transactions."
-          icon={ReceiptText}
-          classes="
-            bg-cyan-500/10
-            text-cyan-600
-            dark:text-cyan-300
-          "
-          delay={0.12}
-        />
-      </div>
-
-      {/* ===================================================
-          FILTER TOOLBAR
-      =================================================== */}
-
-      <motion.section
-        initial={{
-          opacity: 0,
-          y: 8,
-        }}
-        animate={{
-          opacity: 1,
-          y: 0,
-        }}
-        className="
-          relative
-          min-w-0
-          overflow-hidden
-          rounded-[24px]
-          border
-          border-slate-200/80
-          bg-white
-          p-4
-          shadow-sm
-          dark:border-white/[0.08]
-          dark:bg-[#0a1427]
-        "
-      >
-        <div
-          className="
-            pointer-events-none
-            absolute
-            -right-20
-            -top-20
-            h-44
-            w-44
-            rounded-full
-            bg-violet-500/[0.06]
-            blur-[80px]
-          "
-        />
-
-        <div
-          className="
-            relative
-            grid
-            min-w-0
-            gap-3
-            lg:grid-cols-[minmax(240px,1fr)_190px_190px_auto]
-          "
-        >
-          {/* Search */}
-
-          <div className="relative">
-            <Search
-              size={16}
-              className="
-                pointer-events-none
-                absolute
-                left-4
-                top-1/2
-                -translate-y-1/2
-                text-slate-400
-              "
-            />
-
-            <input
-              type="search"
-              value={search}
-              onChange={(event) =>
-                setSearch(
-                  event.target.value
-                )
-              }
-              placeholder="Search payment history..."
-              className="
-                h-11
-                w-full
-                rounded-2xl
-                border
-                border-slate-200
-                bg-slate-50
-                pl-11
-                pr-10
-                text-xs
-                font-medium
-                text-slate-900
-                outline-none
-                transition
-                placeholder:text-slate-400
-                focus:border-blue-500/40
-                focus:bg-white
-                focus:ring-4
-                focus:ring-blue-500/10
-                dark:border-white/[0.08]
-                dark:bg-white/[0.035]
-                dark:text-white
-                dark:focus:bg-white/[0.05]
-              "
-            />
-
-            {search && (
-              <button
-                type="button"
-                onClick={() =>
-                  setSearch("")
-                }
-                aria-label="Clear search"
-                className="
-                  absolute
-                  right-3
-                  top-1/2
-                  flex
-                  h-7
-                  w-7
-                  -translate-y-1/2
-                  items-center
-                  justify-center
-                  rounded-lg
-                  text-slate-400
-                  hover:bg-slate-200
-                  hover:text-slate-700
-                  dark:hover:bg-white/[0.08]
-                  dark:hover:text-white
-                "
-              >
-                <X size={14} />
-              </button>
-            )}
-          </div>
-
-          {/* Payment type */}
-
-          <div className="relative">
-            <WalletCards
-              size={15}
-              className="
-                pointer-events-none
-                absolute
-                left-4
-                top-1/2
-                -translate-y-1/2
-                text-slate-400
-              "
-            />
-
-            <select
-              value={paymentType}
-              onChange={(event) =>
-                setPaymentType(
-                  event.target.value
-                )
-              }
-              className="
-                h-11
-                w-full
-                appearance-none
-                rounded-2xl
-                border
-                border-slate-200
-                bg-slate-50
-                pl-11
-                pr-8
-                text-xs
-                font-bold
-                text-slate-700
-                outline-none
-                transition
-                focus:border-blue-500/40
-                focus:ring-4
-                focus:ring-blue-500/10
-                dark:border-white/[0.08]
-                dark:bg-white/[0.035]
-                dark:text-slate-300
-              "
-            >
-              {paymentTypeOptions.map(
-                (option) => (
-                  <option
-                    key={
-                      option.value
-                    }
-                    value={
-                      option.value
-                    }
-                  >
-                    {option.label}
-                  </option>
-                )
-              )}
-            </select>
-          </div>
-
-          {/* Sort */}
-
-          <div className="relative">
-            <ArrowDownUp
-              size={15}
-              className="
-                pointer-events-none
-                absolute
-                left-4
-                top-1/2
-                -translate-y-1/2
-                text-slate-400
-              "
-            />
-
-            <select
-              value={sort}
-              onChange={(event) =>
-                setSort(
-                  event.target.value
-                )
-              }
-              className="
-                h-11
-                w-full
-                appearance-none
-                rounded-2xl
-                border
-                border-slate-200
-                bg-slate-50
-                pl-11
-                pr-8
-                text-xs
-                font-bold
-                text-slate-700
-                outline-none
-                transition
-                focus:border-blue-500/40
-                focus:ring-4
-                focus:ring-blue-500/10
-                dark:border-white/[0.08]
-                dark:bg-white/[0.035]
-                dark:text-slate-300
-              "
-            >
-              {sortOptions.map(
-                (option) => (
-                  <option
-                    key={
-                      option.value
-                    }
-                    value={
-                      option.value
-                    }
-                  >
-                    {option.label}
-                  </option>
-                )
-              )}
-            </select>
-          </div>
-
-          {/* Reset */}
-
-          <button
-            type="button"
-            disabled={!hasFilters}
-            onClick={
-              resetFilters
-            }
-            className="
-              inline-flex
-              h-11
-              items-center
-              justify-center
-              gap-2
-              rounded-2xl
-              border
+              border-t
               border-slate-200
-              bg-slate-50
-              px-4
-              text-[10px]
-              font-black
-              text-slate-600
-              transition
-              enabled:hover:border-blue-500/25
-              enabled:hover:bg-blue-500/[0.06]
-              enabled:hover:text-blue-600
-              disabled:cursor-not-allowed
-              disabled:opacity-40
-              dark:border-white/[0.08]
-              dark:bg-white/[0.035]
-              dark:text-slate-400
-              dark:enabled:hover:text-blue-300
+
+              bg-white/95
+
+              p-5
+
+              backdrop-blur-xl
+
+              dark:border-white/[0.07]
+              dark:bg-[#081326]/95
+
+              sm:flex-row
+              sm:items-center
+              sm:justify-end
+              sm:p-6
             "
           >
-            <SlidersHorizontal
-              size={14}
-            />
+            <button
+              type="button"
+              disabled={
+                submitting
+              }
+              onClick={() =>
+                onClose?.()
+              }
+              className="
+                inline-flex
+                min-h-11
+                items-center
+                justify-center
 
-            Reset
-          </button>
-        </div>
-      </motion.section>
+                rounded-2xl
 
-      {/* ===================================================
-          RESULT COUNT
-      =================================================== */}
+                border
+                border-slate-200
 
-      <div
-        className="
-          flex
-          flex-col
-          gap-2
-          px-1
-          sm:flex-row
-          sm:items-center
-          sm:justify-between
-        "
-      >
-        <p
-          className="
-            text-[10px]
-            text-slate-500
-            dark:text-slate-400
-          "
-        >
-          Showing{" "}
-          <span
-            className="
-              font-black
-              text-slate-950
-              dark:text-white
-            "
-          >
-            {
-              filteredHistory.length
-            }
-          </span>{" "}
-          of{" "}
-          <span
-            className="
-              font-black
-              text-slate-950
-              dark:text-white
-            "
-          >
-            {history.length}
-          </span>{" "}
-          payment records
-        </p>
+                px-5
+                py-3
 
-        <div
-          className="
-            inline-flex
-            w-fit
-            items-center
-            gap-2
-            text-[9px]
-            font-bold
-            text-slate-400
-          "
-        >
-          <History size={12} />
+                text-xs
+                font-black
+                text-slate-600
 
-          {
-            sortOptions.find(
-              (option) =>
-                option.value ===
-                sort
-            )?.label
-          }
-        </div>
-      </div>
+                transition
 
-      {/* ===================================================
-          HISTORY LIST
-      =================================================== */}
+                hover:bg-slate-100
 
-      {filteredHistory.length ===
-      0 ? (
-        <NoMatchingPayments
-          onReset={
-            resetFilters
-          }
-        />
-      ) : (
-        <div
-          className="
-            min-w-0
-            space-y-3
-          "
-        >
-          {filteredHistory.map(
-            (payment, index) => (
-              <PaymentHistoryRow
-                key={payment.id}
-                payment={payment}
-                index={index}
-              />
-            )
-          )}
-        </div>
-      )}
-    </div>
+                disabled:cursor-not-allowed
+                disabled:opacity-50
+
+                dark:border-white/[0.08]
+                dark:bg-white/[0.03]
+                dark:text-slate-300
+                dark:hover:bg-white/[0.06]
+              "
+            >
+              Cancel
+            </button>
+
+            <button
+              type="submit"
+              disabled={
+                submitting
+              }
+              className="
+                inline-flex
+                min-h-11
+                min-w-[170px]
+                items-center
+                justify-center
+                gap-2
+
+                rounded-2xl
+
+                bg-gradient-to-r
+                from-cyan-500
+                via-blue-500
+                to-violet-500
+
+                px-5
+                py-3
+
+                text-xs
+                font-black
+                text-white
+
+                shadow-lg
+                shadow-blue-500/20
+
+                transition
+
+                hover:-translate-y-0.5
+                hover:shadow-xl
+
+                disabled:cursor-not-allowed
+                disabled:opacity-60
+                disabled:hover:translate-y-0
+              "
+            >
+              {submitting ? (
+                <>
+                  <span
+                    className="
+                      h-4
+                      w-4
+                      animate-spin
+                      rounded-full
+                      border-2
+                      border-white/30
+                      border-t-white
+                    "
+                  />
+
+                  Saving...
+                </>
+              ) : editingDebt ? (
+                <>
+                  <Save
+                    size={16}
+                  />
+
+                  Save Changes
+                </>
+              ) : (
+                <>
+                  <Plus
+                    size={16}
+                  />
+
+                  Add Debt Record
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </motion.div>
+    </div>,
+    document.body
   );
 }
 
-export default DebtPaymentHistory;
+export default DebtFormModal;

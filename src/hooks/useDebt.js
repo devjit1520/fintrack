@@ -4,13 +4,11 @@ import {
   DebtContext,
 } from "../context/DebtContext";
 
-/* =========================================================
-   USE DEBT HOOK
-========================================================= */
-
 function useDebt() {
   const context =
-    useContext(DebtContext);
+    useContext(
+      DebtContext
+    );
 
   if (!context) {
     throw new Error(

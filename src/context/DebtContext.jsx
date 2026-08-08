@@ -9,22 +9,20 @@ import {
 import useAuth from "../hooks/useAuth";
 
 import {
-  clearStoredDebts,
-  createStoredDebt,
+  clearDebtRecords,
+  createDebtPayment,
+  createDebtRecord,
   deleteDebtPayment,
-  deleteStoredDebt,
-  getStoredDebts,
-  recordDebtPayment,
+  deleteDebtRecord,
+  loadDebtRecords,
   subscribeToDebtStorage,
-  updateStoredDebt,
+  updateDebtRecord,
 } from "../services/debtStorageService";
 
 import {
   calculateDebtSummary,
   getNextDebtPayment,
-  isDebtDueSoon,
   normalizeDebtRecord,
-  sortDebtsByDueDate,
 } from "../utils/debtCalculations";
 
 /* =========================================================
@@ -35,135 +33,38 @@ export const DebtContext =
   createContext(null);
 
 /* =========================================================
-   ERROR HELPER
-========================================================= */
-
-function getDebtErrorMessage(
-  error,
-  fallbackMessage
-) {
-  if (
-    error instanceof Error &&
-    error.message
-  ) {
-    return error.message;
-  }
-
-  if (
-    typeof error === "string" &&
-    error.trim()
-  ) {
-    return error;
-  }
-
-  return fallbackMessage;
-}
-
-/* =========================================================
-   PAYMENT HISTORY HELPER
-========================================================= */
-
-/**
- * Combines payment records from every debt into
- * one payment-history array.
- */
-function createPaymentHistory(
-  debts
-) {
-  const records =
-    Array.isArray(debts)
-      ? debts
-      : [];
-
-  const history =
-    records.flatMap((debt) => {
-      const payments =
-        Array.isArray(
-          debt.payments
-        )
-          ? debt.payments
-          : [];
-
-      return payments.map(
-        (payment) => ({
-          ...payment,
-
-          debtId: debt.id,
-
-          debtTitle:
-            debt.title,
-
-          debtType:
-            debt.type,
-
-          partyName:
-            debt.partyName,
-
-          direction:
-            debt.direction,
-
-          debtStatus:
-            debt.status,
-        })
-      );
-    });
-
-  return history.sort(
-    (first, second) => {
-      const firstDate =
-        new Date(
-          first.paymentDate ||
-            first.createdAt ||
-            0
-        ).getTime();
-
-      const secondDate =
-        new Date(
-          second.paymentDate ||
-            second.createdAt ||
-            0
-        ).getTime();
-
-      return secondDate - firstDate;
-    }
-  );
-}
-
-/* =========================================================
    DEBT PROVIDER
 ========================================================= */
 
 function DebtProvider({
   children,
 }) {
+  /* =======================================================
+     AUTH
+  ======================================================= */
+
   const auth =
     useAuth() || {};
 
-  const currentUser =
-    auth.user ||
-    auth.session?.user ||
-    null;
-
-  const authLoading =
-    Boolean(
-      auth.loading ||
-        auth.isLoading ||
-        auth.initializing
-    );
+  const {
+    user,
+  } = auth;
 
   /*
-   * The authenticated user ID keeps each account's
-   * Debt Center records separate.
-   *
-   * Email is used only as a fallback when an ID
-   * is temporarily unavailable.
-   */
-  const storageUserId =
-    String(
-      currentUser?.id ||
-        currentUser?.email ||
-        ""
-    ).trim();
+    Storage is separated by user.
+
+    Supabase normally provides user.id.
+    Email is included as a safe fallback.
+  */
+
+  const userKey =
+    user?.id ||
+    user?.email ||
+    null;
+
+  /* =======================================================
+     STATE
+  ======================================================= */
 
   const [
     debts,
@@ -178,146 +79,183 @@ function DebtProvider({
   const [
     error,
     setError,
-  ] = useState("");
+  ] = useState(null);
 
   /* =======================================================
-     NORMALIZE AND SET DEBTS
+     CLEAR ERROR
   ======================================================= */
 
-  const replaceDebts =
-    useCallback((records) => {
-      const normalizedRecords =
-        Array.isArray(records)
-          ? records.map(
-              normalizeDebtRecord
-            )
-          : [];
-
-      setDebts(
-        normalizedRecords
-      );
-
-      return normalizedRecords;
+  const clearDebtError =
+    useCallback(() => {
+      setError(null);
     }, []);
 
   /* =======================================================
-     LOAD DEBTS
+     LOAD / REFRESH
   ======================================================= */
 
   const refreshDebts =
     useCallback(() => {
-      setError("");
-
-      try {
-        const storedRecords =
-          getStoredDebts(
-            storageUserId
-          );
-
-        return replaceDebts(
-          storedRecords
-        );
-      } catch (loadError) {
-        const message =
-          getDebtErrorMessage(
-            loadError,
-            "Unable to load Debt Center records."
-          );
-
-        setError(message);
+      if (!userKey) {
         setDebts([]);
+        setLoading(false);
 
         return [];
       }
-    }, [
-      replaceDebts,
-      storageUserId,
-    ]);
+
+      try {
+        const records =
+          loadDebtRecords(
+            userKey
+          );
+
+        const normalized =
+          (
+            Array.isArray(
+              records
+            )
+              ? records
+              : []
+          ).map(
+            (record) =>
+              normalizeDebtRecord(
+                record
+              )
+          );
+
+        setDebts(
+          normalized
+        );
+
+        setError(null);
+
+        return normalized;
+      } catch (
+        refreshError
+      ) {
+        console.error(
+          "Unable to load debt records:",
+          refreshError
+        );
+
+        setError(
+          refreshError
+        );
+
+        return [];
+      } finally {
+        setLoading(false);
+      }
+    }, [userKey]);
 
   /* =======================================================
-     INITIAL LOAD AND STORAGE SUBSCRIPTION
+     INITIAL LOAD
   ======================================================= */
 
   useEffect(() => {
-    if (authLoading) {
-      setLoading(true);
+    setLoading(true);
+
+    refreshDebts();
+  }, [refreshDebts]);
+
+  /* =======================================================
+     STORAGE SYNC
+  ======================================================= */
+
+  useEffect(() => {
+    if (!userKey) {
       return undefined;
     }
 
-    setLoading(true);
-    setDebts([]);
-    setError("");
-
-    try {
-      refreshDebts();
-    } finally {
-      setLoading(false);
-    }
-
-    /*
-     * This subscription updates the UI when:
-     *
-     * 1. Debt data changes in the current browser tab.
-     * 2. Debt data changes in another browser tab.
-     */
     const unsubscribe =
       subscribeToDebtStorage(
-        (updatedRecords) => {
-          replaceDebts(
-            updatedRecords
-          );
-        },
-        storageUserId
+        userKey,
+        () => {
+          refreshDebts();
+        }
       );
 
     return unsubscribe;
   }, [
-    authLoading,
+    userKey,
     refreshDebts,
-    replaceDebts,
-    storageUserId,
   ]);
 
   /* =======================================================
-     ADD NEW DEBT
+     ADD DEBT
   ======================================================= */
 
   const addDebt =
     useCallback(
-      (debtData) => {
-        setError("");
+      async (
+        payload = {}
+      ) => {
+        if (!userKey) {
+          const authError =
+            new Error(
+              "You must be logged in to add a debt record."
+            );
+
+          setError(
+            authError
+          );
+
+          throw authError;
+        }
 
         try {
-          const newDebt =
-            createStoredDebt(
-              debtData,
-              storageUserId
+          setError(null);
+
+          const record =
+            createDebtRecord(
+              userKey,
+              payload
             );
 
           /*
-           * The storage event normally updates the state,
-           * but refreshing here makes the result immediate
-           * and predictable.
-           */
-          refreshDebts();
+            Update immediately so the
+            new record appears without
+            waiting for another render.
+          */
 
-          return newDebt;
-        } catch (addError) {
-          const message =
-            getDebtErrorMessage(
-              addError,
-              "Unable to add the debt record."
+          const normalized =
+            normalizeDebtRecord(
+              record
             );
 
-          setError(message);
+          setDebts(
+            (current) => {
+              const withoutDuplicate =
+                current.filter(
+                  (item) =>
+                    item.id !==
+                    normalized.id
+                );
 
-          throw new Error(message);
+              return [
+                normalized,
+                ...withoutDuplicate,
+              ];
+            }
+          );
+
+          return normalized;
+        } catch (
+          addError
+        ) {
+          console.error(
+            "Unable to add debt:",
+            addError
+          );
+
+          setError(
+            addError
+          );
+
+          throw addError;
         }
       },
-      [
-        refreshDebts,
-        storageUserId,
-      ]
+      [userKey]
     );
 
   /* =======================================================
@@ -326,157 +264,260 @@ function DebtProvider({
 
   const editDebt =
     useCallback(
-      (
-        debtId,
-        updates
+      async (
+        recordId,
+        updates = {}
       ) => {
-        setError("");
+        if (!userKey) {
+          throw new Error(
+            "You must be logged in to edit debt records."
+          );
+        }
+
+        if (!recordId) {
+          throw new Error(
+            "Debt record ID is required."
+          );
+        }
 
         try {
-          const updatedDebt =
-            updateStoredDebt(
-              debtId,
-              updates,
-              storageUserId
+          setError(null);
+
+          const updated =
+            updateDebtRecord(
+              userKey,
+              recordId,
+              updates
             );
 
-          refreshDebts();
-
-          return updatedDebt;
-        } catch (editError) {
-          const message =
-            getDebtErrorMessage(
-              editError,
-              "Unable to update the debt record."
+          const normalized =
+            normalizeDebtRecord(
+              updated
             );
 
-          setError(message);
+          setDebts(
+            (current) =>
+              current.map(
+                (record) =>
+                  record.id ===
+                  recordId
+                    ? normalized
+                    : record
+              )
+          );
 
-          throw new Error(message);
+          return normalized;
+        } catch (
+          editError
+        ) {
+          console.error(
+            "Unable to edit debt:",
+            editError
+          );
+
+          setError(
+            editError
+          );
+
+          throw editError;
         }
       },
-      [
-        refreshDebts,
-        storageUserId,
-      ]
+      [userKey]
     );
 
   /* =======================================================
-     DELETE DEBT
+     REMOVE DEBT
   ======================================================= */
 
   const removeDebt =
     useCallback(
-      (debtId) => {
-        setError("");
+      async (
+        recordId
+      ) => {
+        if (!userKey) {
+          throw new Error(
+            "You must be logged in to delete debt records."
+          );
+        }
+
+        if (!recordId) {
+          throw new Error(
+            "Debt record ID is required."
+          );
+        }
 
         try {
-          const wasDeleted =
-            deleteStoredDebt(
-              debtId,
-              storageUserId
+          setError(null);
+
+          const removed =
+            deleteDebtRecord(
+              userKey,
+              recordId
             );
 
-          refreshDebts();
-
-          return wasDeleted;
-        } catch (deleteError) {
-          const message =
-            getDebtErrorMessage(
-              deleteError,
-              "Unable to delete the debt record."
+          if (!removed) {
+            throw new Error(
+              "Debt record was not found."
             );
+          }
 
-          setError(message);
+          setDebts(
+            (current) =>
+              current.filter(
+                (record) =>
+                  record.id !==
+                  recordId
+              )
+          );
 
-          throw new Error(message);
+          return true;
+        } catch (
+          removeError
+        ) {
+          console.error(
+            "Unable to delete debt:",
+            removeError
+          );
+
+          setError(
+            removeError
+          );
+
+          throw removeError;
         }
       },
-      [
-        refreshDebts,
-        storageUserId,
-      ]
+      [userKey]
     );
 
   /* =======================================================
-     RECORD PAYMENT
+     ADD PAYMENT
   ======================================================= */
 
   const addPayment =
     useCallback(
-      (
-        debtId,
-        paymentData
+      async (
+        recordId,
+        payload = {}
       ) => {
-        setError("");
+        if (!userKey) {
+          throw new Error(
+            "You must be logged in to record a payment."
+          );
+        }
+
+        if (!recordId) {
+          throw new Error(
+            "Debt record ID is required."
+          );
+        }
 
         try {
-          const result =
-            recordDebtPayment(
-              debtId,
-              paymentData,
-              storageUserId
+          setError(null);
+
+          const payment =
+            createDebtPayment(
+              userKey,
+              recordId,
+              payload
             );
+
+          /*
+            Reload because recording a
+            payment can change:
+
+            - remaining amount
+            - status
+            - due date
+            - progress
+            - payment history
+          */
 
           refreshDebts();
 
-          return result;
-        } catch (paymentError) {
-          const message =
-            getDebtErrorMessage(
-              paymentError,
-              "Unable to record the payment."
-            );
+          return payment;
+        } catch (
+          paymentError
+        ) {
+          console.error(
+            "Unable to record debt payment:",
+            paymentError
+          );
 
-          setError(message);
+          setError(
+            paymentError
+          );
 
-          throw new Error(message);
+          throw paymentError;
         }
       },
       [
+        userKey,
         refreshDebts,
-        storageUserId,
       ]
     );
 
   /* =======================================================
-     DELETE PAYMENT
+     REMOVE PAYMENT
   ======================================================= */
 
   const removePayment =
     useCallback(
-      (
-        debtId,
+      async (
+        recordId,
         paymentId
       ) => {
-        setError("");
+        if (!userKey) {
+          throw new Error(
+            "You must be logged in to remove a payment."
+          );
+        }
+
+        if (
+          !recordId ||
+          !paymentId
+        ) {
+          throw new Error(
+            "Debt and payment IDs are required."
+          );
+        }
 
         try {
-          const updatedDebt =
+          setError(null);
+
+          const removed =
             deleteDebtPayment(
-              debtId,
-              paymentId,
-              storageUserId
+              userKey,
+              recordId,
+              paymentId
             );
+
+          if (!removed) {
+            throw new Error(
+              "Payment record was not found."
+            );
+          }
 
           refreshDebts();
 
-          return updatedDebt;
-        } catch (paymentError) {
-          const message =
-            getDebtErrorMessage(
-              paymentError,
-              "Unable to delete the payment."
-            );
+          return true;
+        } catch (
+          paymentError
+        ) {
+          console.error(
+            "Unable to remove payment:",
+            paymentError
+          );
 
-          setError(message);
+          setError(
+            paymentError
+          );
 
-          throw new Error(message);
+          throw paymentError;
         }
       },
       [
+        userKey,
         refreshDebts,
-        storageUserId,
       ]
     );
 
@@ -485,241 +526,321 @@ function DebtProvider({
   ======================================================= */
 
   const clearAllDebts =
-    useCallback(() => {
-      setError("");
-
-      try {
-        clearStoredDebts(
-          storageUserId
-        );
-
-        setDebts([]);
-
-        return true;
-      } catch (clearError) {
-        const message =
-          getDebtErrorMessage(
-            clearError,
-            "Unable to clear Debt Center data."
-          );
-
-        setError(message);
-
-        throw new Error(message);
-      }
-    }, [storageUserId]);
-
-  /* =======================================================
-     FIND ONE DEBT
-  ======================================================= */
-
-  const getDebtById =
     useCallback(
-      (debtId) => {
-        const safeDebtId =
-          String(
-            debtId || ""
-          ).trim();
-
-        if (!safeDebtId) {
-          return null;
+      async () => {
+        if (!userKey) {
+          return;
         }
 
-        return (
-          debts.find(
-            (debt) =>
-              debt.id ===
-              safeDebtId
-          ) || null
-        );
+        try {
+          clearDebtRecords(
+            userKey
+          );
+
+          setDebts([]);
+          setError(null);
+        } catch (
+          clearError
+        ) {
+          console.error(
+            "Unable to clear debt records:",
+            clearError
+          );
+
+          setError(
+            clearError
+          );
+
+          throw clearError;
+        }
       },
-      [debts]
+      [userKey]
     );
 
   /* =======================================================
-     CLEAR ERROR
-  ======================================================= */
-
-  const clearDebtError =
-    useCallback(() => {
-      setError("");
-    }, []);
-
-  /* =======================================================
-     NORMALIZED AND SORTED DEBTS
+     NORMALIZED DEBTS
   ======================================================= */
 
   const normalizedDebts =
-    useMemo(
-      () =>
-        debts.map(
-          normalizeDebtRecord
-        ),
-      [debts]
-    );
-
-  const sortedDebts =
-    useMemo(
-      () =>
-        sortDebtsByDueDate(
-          normalizedDebts
-        ),
-      [normalizedDebts]
-    );
+    useMemo(() => {
+      return (
+        Array.isArray(debts)
+          ? debts
+          : []
+      ).map(
+        (record) =>
+          normalizeDebtRecord(
+            record
+          )
+      );
+    }, [debts]);
 
   /* =======================================================
-     DEBT SUMMARY
+     LOANS & EMI
   ======================================================= */
 
-  const summary =
-    useMemo(
-      () =>
-        calculateDebtSummary(
-          normalizedDebts
-        ),
-      [normalizedDebts]
-    );
+  const loanDebts =
+    useMemo(() => {
+      return normalizedDebts.filter(
+        (record) =>
+          record.type ===
+            "loan" ||
+          record.type === "emi"
+      );
+    }, [
+      normalizedDebts,
+    ]);
 
   /* =======================================================
-     PAYABLE AND RECEIVABLE RECORDS
+     BORROWED MONEY
   ======================================================= */
 
-  const payableDebts =
-    useMemo(
-      () =>
-        sortedDebts.filter(
-          (debt) =>
-            debt.direction ===
-            "payable"
-        ),
-      [sortedDebts]
-    );
+  const borrowedDebts =
+    useMemo(() => {
+      return normalizedDebts.filter(
+        (record) => {
+          if (
+            record.type ===
+            "borrowed"
+          ) {
+            return true;
+          }
 
-  const receivableDebts =
-    useMemo(
-      () =>
-        sortedDebts.filter(
-          (debt) =>
-            debt.direction ===
+          return (
+            record.direction ===
+              "payable" &&
+            record.type !==
+              "loan" &&
+            record.type !==
+              "emi"
+          );
+        }
+      );
+    }, [
+      normalizedDebts,
+    ]);
+
+  /* =======================================================
+     MONEY LENT
+  ======================================================= */
+
+  const lentDebts =
+    useMemo(() => {
+      return normalizedDebts.filter(
+        (record) =>
+          record.type ===
+            "lent" ||
+          record.direction ===
             "receivable"
-        ),
-      [sortedDebts]
-    );
+      );
+    }, [
+      normalizedDebts,
+    ]);
 
   /* =======================================================
-     STATUS GROUPS
+     ACTIVE
   ======================================================= */
 
   const activeDebts =
-    useMemo(
-      () =>
-        sortedDebts.filter(
-          (debt) =>
-            debt.status !==
+    useMemo(() => {
+      return normalizedDebts.filter(
+        (record) =>
+          record.status !==
             "completed"
-        ),
-      [sortedDebts]
-    );
+      );
+    }, [
+      normalizedDebts,
+    ]);
 
-  const completedDebts =
-    useMemo(
-      () =>
-        sortedDebts.filter(
-          (debt) =>
-            debt.status ===
-            "completed"
-        ),
-      [sortedDebts]
-    );
+  /* =======================================================
+     OVERDUE
+  ======================================================= */
 
   const overdueDebts =
-    useMemo(
-      () =>
-        sortedDebts.filter(
-          (debt) =>
-            debt.status ===
+    useMemo(() => {
+      return normalizedDebts.filter(
+        (record) =>
+          record.status ===
             "overdue"
-        ),
-      [sortedDebts]
-    );
+      );
+    }, [
+      normalizedDebts,
+    ]);
 
-  const upcomingDebts =
-    useMemo(
-      () =>
-        sortedDebts.filter(
-          (debt) => {
-            if (
-              debt.status ===
-                "completed" ||
-              debt.status ===
-                "overdue"
-            ) {
-              return false;
-            }
+  /* =======================================================
+     COMPLETED
+  ======================================================= */
 
-            return isDebtDueSoon(
-              debt,
-              30
-            );
-          }
-        ),
-      [sortedDebts]
-    );
+  const completedDebts =
+    useMemo(() => {
+      return normalizedDebts.filter(
+        (record) =>
+          record.status ===
+            "completed"
+      );
+    }, [
+      normalizedDebts,
+    ]);
 
   /* =======================================================
      PAYMENT HISTORY
   ======================================================= */
 
   const paymentHistory =
-    useMemo(
-      () =>
-        createPaymentHistory(
+    useMemo(() => {
+      const history = [];
+
+      normalizedDebts.forEach(
+        (record) => {
+          const payments =
+            Array.isArray(
+              record.payments
+            )
+              ? record.payments
+              : [];
+
+          payments.forEach(
+            (payment) => {
+              history.push({
+                ...payment,
+
+                debtId:
+                  record.id,
+
+                debtTitle:
+                  record.title,
+
+                title:
+                  record.title,
+
+                debtType:
+                  record.type,
+
+                recordType:
+                  record.type,
+
+                partyName:
+                  record.partyName,
+
+                direction:
+                  payment.direction ||
+                  record.direction,
+
+                paymentType:
+                  payment.paymentType ||
+                  payment.type ||
+                  (record.direction ===
+                  "receivable"
+                    ? "received"
+                    : "paid"),
+              });
+            }
+          );
+        }
+      );
+
+      return history.sort(
+        (a, b) => {
+          const aTime =
+            new Date(
+              a.paymentDate ||
+                a.date ||
+                a.createdAt ||
+                0
+            ).getTime();
+
+          const bTime =
+            new Date(
+              b.paymentDate ||
+                b.date ||
+                b.createdAt ||
+                0
+            ).getTime();
+
+          return (
+            bTime - aTime
+          );
+        }
+      );
+    }, [
+      normalizedDebts,
+    ]);
+
+  /* =======================================================
+     SUMMARY
+  ======================================================= */
+
+  const summary =
+    useMemo(() => {
+      try {
+        return calculateDebtSummary(
           normalizedDebts
-        ),
-      [normalizedDebts]
-    );
+        );
+      } catch (
+        summaryError
+      ) {
+        console.error(
+          "Unable to calculate debt summary:",
+          summaryError
+        );
+
+        return {
+          totalPayable: 0,
+          totalReceivable: 0,
+          overdueAmount: 0,
+          totalPaid: 0,
+          activeCount: 0,
+          overdueCount: 0,
+          completedCount: 0,
+        };
+      }
+    }, [
+      normalizedDebts,
+    ]);
 
   /* =======================================================
      NEXT PAYMENT
   ======================================================= */
 
   const nextPayment =
-    useMemo(
-      () =>
-        getNextDebtPayment(
-          normalizedDebts
-        ),
-      [normalizedDebts]
-    );
+    useMemo(() => {
+      try {
+        return (
+          getNextDebtPayment(
+            normalizedDebts
+          ) || null
+        );
+      } catch (
+        nextError
+      ) {
+        console.error(
+          "Unable to calculate next debt payment:",
+          nextError
+        );
+
+        return null;
+      }
+    }, [
+      normalizedDebts,
+    ]);
 
   /* =======================================================
-     PROVIDER VALUE
+     CONTEXT VALUE
   ======================================================= */
 
-  const contextValue =
+  const value =
     useMemo(
       () => ({
-        /* Current authenticated storage owner */
-
-        userId:
-          storageUserId,
-
         /* State */
 
         debts:
-          sortedDebts,
+          normalizedDebts,
 
-        loading:
-          loading ||
-          authLoading,
+        loading,
 
         error,
 
-        hasDebtData:
-          sortedDebts.length >
-          0,
-
-        /* Calculated information */
+        /* Calculated */
 
         summary,
 
@@ -727,21 +848,21 @@ function DebtProvider({
 
         paymentHistory,
 
-        /* Grouped records */
+        /* Groups */
 
-        payableDebts,
+        loanDebts,
 
-        receivableDebts,
+        borrowedDebts,
+
+        lentDebts,
 
         activeDebts,
 
-        completedDebts,
-
         overdueDebts,
 
-        upcomingDebts,
+        completedDebts,
 
-        /* Main actions */
+        /* Actions */
 
         addDebt,
 
@@ -753,19 +874,13 @@ function DebtProvider({
 
         removePayment,
 
-        clearAllDebts,
-
         refreshDebts,
 
-        getDebtById,
+        clearAllDebts,
 
         clearDebtError,
 
-        /*
-         * Alternative action names.
-         * These make the context easier to use in different
-         * components without changing its logic.
-         */
+        /* Aliases */
 
         createDebt:
           addDebt,
@@ -783,35 +898,32 @@ function DebtProvider({
           removePayment,
       }),
       [
-        storageUserId,
-        sortedDebts,
+        normalizedDebts,
         loading,
-        authLoading,
         error,
         summary,
         nextPayment,
         paymentHistory,
-        payableDebts,
-        receivableDebts,
+        loanDebts,
+        borrowedDebts,
+        lentDebts,
         activeDebts,
-        completedDebts,
         overdueDebts,
-        upcomingDebts,
+        completedDebts,
         addDebt,
         editDebt,
         removeDebt,
         addPayment,
         removePayment,
-        clearAllDebts,
         refreshDebts,
-        getDebtById,
+        clearAllDebts,
         clearDebtError,
       ]
     );
 
   return (
     <DebtContext.Provider
-      value={contextValue}
+      value={value}
     >
       {children}
     </DebtContext.Provider>
