@@ -1,22 +1,44 @@
-<<<<<<< HEAD
-# React + Vite
+# FinTrack
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A modern personal finance management application built with React for tracking transactions, budgets, financial goals, and analytics.
 
-Currently, two official plugins are available:
+## Live Demo
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+https://fintrack-devjit.vercel.app/
 
-## React Compiler
+## About
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+FinTrack is a frontend personal finance dashboard designed to provide a clean and responsive experience for managing everyday finances.
 
-Note: This will impact Vite dev & build performances.
+The application demonstrates practical React development, reusable components, application state management, data visualization, responsive interface design, and browser-based persistence.
 
-## Expanding the Oxlint configuration
+## Core Features
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
-=======
-# fintrack-pro
->>>>>>> 213d16f0480cc31e87d07101eb2b88ed74133bf3
+- Income and expense tracking
+- Transaction management
+- Budget tracking
+- Financial goals
+- Analytics dashboard
+- Interactive charts
+- Responsive design
+- Light and dark theme support
+- Profile management
+- Local data persistence
+
+## Tech Stack
+
+- React
+- JavaScript
+- Tailwind CSS
+- React Router
+- Recharts
+- Framer Motion
+- React Hook Form
+- LocalStorage
+- Vite
+
+## Author
+
+**Devjit Mondal**
+
+Frontend Developer
